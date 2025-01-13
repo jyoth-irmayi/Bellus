@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Razorpay Payment</title>
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+</head>
+<body>
+    <h1>Make a Payment</h1>
+
+    <p><strong>Total Amount:</strong> ₹{{ total }}</p>
+    <p><strong>Coupon Discount:</strong> ₹{{ coupon_discount }}</p>
+    <p><strong>Tax:</strong> ₹{{ tax }}</p>
+    <p><strong>Grand Total:</strong> ₹{{ grand_total }}</p>
+    <p><strong>Selected Address:</strong> {{ selected_address }}</p>
+    <p><strong>Applied Coupon:</strong> {{ coupon }}</p>
+    <p><strong>Available Wallet Balance:</strong> ₹{{ wallet }}</p>
+
+    <form action="{% url 'payment_success' %}" method="POST">
+        {% csrf_token %}
+        <script
+            src="https://checkout.razorpay.com/v1/checkout.js"
+            data-key="{{ razorpay_key }}" 
+            data-amount="{{ grand_total|floatformat:2|multiply:100 }}"
+            data-currency="INR"
+            data-order_id="{{ razorpay_order_id }}"
+            data-buttontext="Pay with Razorpay"
+            data-name="Your Store Name"
+            data-description="Order #{{ order.id }}"
+            data-image="https://yourstore.com/logo.png"
+            data-prefill.name="{{ user.get_full_name }}"
+            data-prefill.email="{{ user.email }}"
+            data-prefill.contact="{{ user.phone }}"
+            data-theme.color="#F37254">
+        </script>
+        <input type="hidden" name="order_id" value="{{ order.id }}">
+    </form>
+</body>
+</html>

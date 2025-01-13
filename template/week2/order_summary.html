@@ -1,0 +1,516 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Product Detail</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+
+    <style>
+
+:root {
+            --primary-color: #2c614f;
+            --secondary-color: #f0f7f4;
+            --accent-color: #d4a373;
+            --text-color: #333333;
+        }        
+.product-image {
+    border: 1px solid #ddd;
+    padding: 10px;
+    text-align: center;
+}
+
+.message.success {
+    color: #155724;
+    padding: 10px;
+    margin: 10px 0;
+    border-radius: 5px;
+}
+
+/* Style for error messages */
+.message.error {
+    color: red;
+    padding: 10px;
+    margin: 10px 0;
+    border-radius: 5px;
+}
+
+.thumbnail-image img {
+    cursor: pointer;
+    transition: transform 0.2s ease-in-out;
+}
+.navbar{
+    color: #2c614f;
+}
+.navbar-brand {
+    font-size: 2rem;
+    color: var(--primary-color) !important;
+}
+.nav-link {
+    color:#2c614f;
+    padding: 0.75rem 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.nav-item {
+    color: #2c614f;
+    padding: 0.8rem 1rem;
+}
+.thumbnail-image img:hover {
+    transform: scale(1.1);
+}
+.cart-item-img {
+            max-width: 100px;
+            max-height: 100px;
+            object-fit: cover;
+        }
+        .quantity-input {
+            width: 60px;
+        }
+        .summary-card {
+            position: sticky;
+            top: 20px;
+        }
+
+footer {
+    background-color: var(--primary-color);
+    color: white;
+    padding: 2rem 0;
+}
+
+.container-footer {
+    background-color: #2c614f;
+    color: white;
+}
+footer {
+    background-color: var(--primary-color);
+    color: white;
+}
+.footer h5 {
+    font-weight: bold;
+    margin-bottom: 1rem;
+}
+
+.footer ul {
+    padding: 0;
+    list-style: none;
+}
+
+.footer ul li a {
+    text-decoration: none;
+    color: white;
+}
+
+.footer ul li a:hover {
+    text-decoration: underline;
+}
+
+.footer p {
+    margin: 0;
+    font-size: 0.9rem;
+}
+
+.breadcrumb {
+    background: transparent;
+    padding: 0;
+    margin-bottom: 1.5rem;
+}
+.breadcrumb-item a {
+    color: white;
+    text-decoration: none;
+}
+.breadcrumb-item.active {
+    color: #333;
+}
+.breadcrumb-item + .breadcrumb-item::before {
+    content: ">";
+}
+</style>
+    <!-- Include jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/elevatezoom/3.0.8/jquery.elevateZoom.min.js"></script>
+    <meta name="csrf-token" content="{{ csrf_token }}">
+
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-light">
+        <div class="container">
+            <a class="navbar-brand" href="#">Bellus</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'homepage' %}">Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'shop' %}">Shop</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">Collections</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">About</a>
+                    </li>
+                </ul>
+                <div class="d-flex">
+                    <a href="{% url 'cart_view' %}" class="btn btn-outline-primary me-2">
+                        <i class="fas fa-shopping-bag"></i>
+                    </a>
+                    <a href="{% url 'user_profile' %}" class="btn btn-outline-primary">
+                        <i class="fas fa-user"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+    <div class="container py-5 bg-light">
+        <h1 class="mb-5 text-center">Order Summary</h1>
+        
+        <!-- Shipping Address Section -->
+        <div class="row mb-5">
+            <div class="col-12">
+                <div class="selected-address border p-3">
+                    <h5>Shipping Address</h5>
+                    {% if selected_address %}
+                        <p><strong>{{ selected_address.name }}</strong></p>
+                        <p>{{ selected_address.phone_number }}</p>
+                        <p>{{ selected_address.address_line }}</p>
+                        <p>{{ selected_address.location }}, {{ selected_address.city }}</p>
+                        <p>{{ selected_address.state }} - {{ selected_address.pincode }}</p>
+                        {% if selected_address.landmark %}
+                            <p><strong>Landmark:</strong> {{ selected_address.landmark }}</p>
+                        {% endif %}
+                    {% else %}
+                        <p>No address selected. <a href="{% url 'checkout_address' %}">Select an address</a></p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    
+        <!-- Cart Items and Summary -->
+        <div class="row">
+            <!-- Cart Items Column -->
+            <div class="col-lg-8">
+                <form method="POST" action="{% url 'order_summary' %}">
+                    {% csrf_token %}
+                    <div class="card mb-4">
+                        <div class="card-body">
+                            <h5 class="card-title mb-4">Cart Items</h5>
+                            {% for item in cart_items %}
+                            <!-- Item Row -->
+                            <div class="row mb-4 border-bottom pb-4">
+                                <div class="col-md-2 col-4">
+                                    {% if item.variant and item.variant.images.exists %}
+                                    <img src="{{ item.variant.images.first.image.url }}" alt="Variant Image" class="img-fluid">
+                                    {% else %}
+                                    <img src="{{ item.variant.product.productimage_set.first.image.url }}" alt="Product Image" class="img-fluid">
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-6 col-8">
+                                    <h6 class="text-black mb-0">{{ item.variant.product.product_name }}</h6>
+                                    <p><strong>Brand:</strong> {{ item.variant.product.brand }}</p>
+                                    <p><strong class="text-success">Discount:</strong> {{ item.variant.product.discount }}</p>
+                                </div>
+                                <div class="col-md-4 col-12 mt-3 mt-md-0">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div class="text-end">
+                                            <h6 class="mb-0">₹{{ item.total_price }}</h6>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </form>
+            </div>
+    
+            <!-- Summary Column -->
+    <div class="col-lg-4">
+        {% if messages %}
+    <ul class="list-unstyled">
+        {% for message in messages %}
+            <li class="text-danger">{{ message }}</li>
+        {% endfor %}
+    </ul>
+{% endif %}
+
+        <div class="card summary-card">
+            <div class="card-body">
+                <form method="POST" action="{% url 'apply_coupon' %}">
+                    {% csrf_token %}
+                    <div class="list-group mb-3">
+                        {% for coupon in available_coupons %}
+                            <label class="list-group-item d-flex justify-content-between align-items-center">
+                                <input 
+                                    type="radio" 
+                                    name="selected_coupon" 
+                                    class="coupon-radio" 
+                                    value="{{ coupon.code }}" 
+                                    data-code="{{ coupon.code }}" 
+                                    onchange="document.getElementById('coupon-code-input').value = this.value;">
+                                <span>{{ coupon.name }}</span>
+                                
+                                <!-- Show discount type -->
+                                {% if coupon.discount_type == 'percentage' %}
+                                    <span class="badge bg-success">{{ coupon.discount_value }}% Off</span>
+                                {% else %}
+                                    <span class="badge bg-success">₹{{ coupon.discount_value }} Off</span>
+                                {% endif %}
+                            </label>
+                        {% empty %}
+                            <p class="text-muted">No available coupons.</p>
+                        {% endfor %}
+                    </div>
+                    <div class="mb-3">
+                        <label for="coupon-code-input" class="form-label">Selected Coupon Code</label>
+                        <input type="text" id="coupon-code-input" name="coupon_code" class="form-control" readonly>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Apply Selected Coupon</button>
+                </form>
+                <br>
+                {% if messages %}
+                <ul>
+                    {% for message in messages %}
+                    <li class="text-danger">{{ message }}</li>
+                    {% endfor %}
+                </ul>
+                {% endif %}
+                <h5 class="card-title mb-4">Summary</h5>
+                <div class="d-flex justify-content-between mb-3">
+                    <span>Subtotal</span>
+                    <span>₹{{ total }}</span>
+                </div>
+                <div class="d-flex justify-content-between mb-3">
+                    <span>Tax</span>
+                    <span>₹{{ tax }}</span>
+                </div>
+                <div class="d-flex justify-content-between mb-4">
+                    <span class="text-success">Discount</span>
+                    <span>₹{{ total_discount }}</span>
+                </div>
+                <hr>
+                <div class="d-flex justify-content-between">
+                    <strong>Total</strong>
+                    <strong>₹{{ grand_total }}</strong>
+                </div>
+            </div>
+        </div>
+
+    <!-- Payment Method Section -->
+    <div class="card summary-card">
+        <div class="card-body">
+            <h5 class="card-title mb-4">Payment Method</h5>
+            <div class="form-group">
+                <label>Select Payment Method</label>
+                <form method="POST">
+                    {% csrf_token %}
+                    <div>
+                        <label for="payment_method">Payment Method</label>
+                        <select name="payment_method" id="payment_method">
+                            <option value="wallet">Wallet (Balance: {{ wallet_balance }})</option>
+                            <option value="cod">Cash on Delivery</option>
+                            <option value="razorpay">Razorpay</option>
+                        </select>
+                    </div>
+                    <br>
+                    <div>
+                        <button type="submit" class="btn btn-primary">Place Order</button>
+                        <button id="rzp-button" class="btn btn-primary" type="button">Pay with Razorpay</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>    
+        </div>
+    </div>
+</div>
+
+<!-- Success Modal (Popup)
+<div class="modal fade" id="order-success-modal" tabindex="-1" role="dialog" aria-labelledby="order-success-modal-label" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="order-success-modal-label">Order Successful</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p>Your order has been successfully placed. Thank you for choosing Cash on Delivery!</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div> -->
+
+    <footer class="footer py-4">
+        <div class="container-fluid">
+            <div class="row text-white">
+                <div class="col-md-4 mb-4">
+                    <h5>About Bellus</h5>
+                    <p>Bellus offers a curated selection of elegant and timeless women's fashion. Our pieces are designed to empower and inspire.</p>
+                </div>
+                <div class="col-md-4 mb-4">
+                    <h5>Quick Links</h5>
+                    <ul class="list-unstyled">
+                        <li><a href="#" class="text-white">Shop</a></li>
+                        <li><a href="#" class="text-white">Collections</a></li>
+                        <li><a href="#" class="text-white">About Us</a></li>
+                        <li><a href="#" class="text-white">Contact</a></li>
+                    </ul>
+                </div>
+                <div class="col-md-4 mb-4">
+                    <h5>Connect With Us</h5>
+                    <div class="d-flex">
+                        <a href="#" class="text-white me-3"><i class="fab fa-facebook-f"></i></a>
+                        <a href="#" class="text-white me-3"><i class="fab fa-instagram"></i></a>
+                        <a href="#" class="text-white me-3"><i class="fab fa-twitter"></i></a>
+                        <a href="#" class="text-white"><i class="fab fa-pinterest"></i></a>
+                    </div>
+                </div>
+            </div>
+            <hr class="my-4 bg-light">
+            <p class="text-center text-white mb-0">&copy; 2023 Bellus. All rights reserved.</p>
+        </div>
+    </footer>
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- JavaScript for triggering the popup -->
+<!-- JavaScript for triggering the popup -->
+<script>
+    document.getElementById('order-summary-form').addEventListener('submit', function(event) {
+        const paymentMethod = document.getElementById('payment-method').value;
+
+        // Check if the selected payment method is "Cash on Delivery"
+        if (paymentMethod === 'cod') {
+            // Prevent form submission
+            event.preventDefault();
+
+            // Show the success modal
+            $('#order-success-modal').modal('show');
+            
+            // Optionally, submit the form after the modal closes
+            $('#order-success-modal').on('hidden.bs.modal', function () {
+                document.getElementById('order-summary-form').submit();
+            });
+        }
+    });
+</script>
+<script>
+    // Automatically copy coupon code to the input field when a radio button is selected
+    document.querySelectorAll('.coupon-radio').forEach(radio => {
+        radio.addEventListener('change', function () {
+            const couponCodeInput = document.getElementById('coupon-code-input');
+            couponCodeInput.value = this.dataset.code;
+        });
+    });
+</script>
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        // Razorpay Payment Integration
+        const button = document.getElementById('rzp-button');
+        
+        if (!button) {
+            console.error("Button with ID 'rzp-button' not found.");
+            return;
+        }
+
+        button.addEventListener('click', function () {
+            const amountInPaise = parseInt("{{ grand_total|default:0 }}") * 100; // Convert amount to paise
+
+            if (isNaN(amountInPaise) || amountInPaise <= 0) {
+                alert("Invalid amount. Please check the total.");
+                return;
+            }
+
+            fetch("{% url 'razorpay_create_order' %}", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": "{{ csrf_token }}"
+                },
+                body: JSON.stringify({
+                    amount: amountInPaise // Amount in paise
+                })
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error("Failed to create Razorpay order.");
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    const options = {
+                        key: data.razorpay_key_id, // Razorpay Key ID
+                        amount: data.amount,
+                        currency: data.currency,
+                        order_id: data.razorpay_order_id,
+                        name: "Bellus",
+                        description: "Payment for your order",
+                        handler: function (response) {
+                            // Handle Payment Success
+                            fetch("{% url 'razorpay_payment_success' %}", {
+                                method: "POST",
+                                headers: {
+                                    "Content-Type": "application/json",
+                                    "X-CSRFToken": "{{ csrf_token }}"
+                                },
+                                body: JSON.stringify({
+                                    razorpay_payment_id: response.razorpay_payment_id,
+                                    razorpay_order_id: response.razorpay_order_id,
+                                    razorpay_signature: response.razorpay_signature
+                                })
+                            })
+                                .then(response => {
+                                    if (!response.ok) {
+                                        throw new Error("Payment verification failed.");
+                                    }
+                                    return response.json();
+                                })
+                                .then(data => {
+                                    if (data.success) {
+                                        alert("Payment successful!");
+                                        window.location.href = "{% url 'payment_success' %}";
+                                    } else {
+                                        alert("Payment verification failed. Please try again.");
+                                    }
+                                })
+                                .catch(error => {
+                                    console.error("Error during payment verification:", error);
+                                    alert("Error during payment verification. Please try again later.");
+                                });
+                        },
+                        theme: {
+                            color: "#3399cc" // Razorpay popup theme color
+                        }
+                    };
+
+                    const rzp = new Razorpay(options);
+                    rzp.open();
+                })
+                .catch(error => {
+                    console.error("Error initializing Razorpay:", error);
+                    alert("Error initializing Razorpay payment. Please try again later.");
+                });
+        });
+    });
+</script>
+
+   </body>
+</html>
+
+

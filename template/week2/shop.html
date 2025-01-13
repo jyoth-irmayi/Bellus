@@ -1,0 +1,366 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bellus - Elegant Women's Fashion</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+         :root {
+            --primary-color: #2c614f;
+            --secondary-color: #f0f7f4;
+            --accent-color: #d4a373;
+            --text-color: #333333;
+        }
+        .popup {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 10px 20px;
+            background-color:white;
+            color: white;
+            font-size: 14px;
+            border-radius: 5px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+            opacity: 0;
+            animation: fadeInOut 3s forwards;
+            height: 50px;
+            width: 200px;
+        }
+
+        .popup.error {
+            background-color: red;
+        }
+
+        /* Fade-in and fade-out animation */
+        @keyframes fadeInOut {
+            0% { opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+        body {
+            font-family: 'Playfair Display', serif;
+            color: var(--text-color);
+            
+        }
+        
+        .navbar-brand {
+            font-size: 2rem;
+            color: var(--primary-color) !important;
+        }
+        .nav-link {
+            color: var(--primary-color) !important;
+        }
+        .nav-btn{
+            text-decoration: none;
+            margin-left: 10px;
+            background-color: #2c614f;
+            color: white;
+            border-radius: 5px;
+            border: none;
+            height: 35px;
+            width: 65px;
+
+        }
+        .success {
+            color: green;
+        }
+        .error {
+            color: red;
+        }
+        .btn-primary {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+        .btn-primary:hover {
+            background-color: var(--accent-color);
+            border-color: var(--accent-color);
+        }
+        .category-card {
+            transition: transform 0.3s;
+            height: 100%;
+        }
+        .category-card:hover {
+            transform: translateY(-5px);
+        }
+        .product-card {
+            transition: transform 0.3s;
+        }
+        .product-card:hover {
+            transform: translateY(-5px);
+        }
+        .newsletter {
+            background-color: var(--secondary-color);
+        }
+        footer {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        .filters {
+            margin-bottom: 20px;
+        }
+
+        .filters select, .filters input {
+            margin: 5px;
+            padding: 8px;
+        }
+
+        .products-container {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr); /* Adjust for 4 columns */
+            gap: 20px;
+        }
+
+        .product-card {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: center;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .product-card:hover {
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .product-image img {
+            width: 100%;            /* Ensures the image fills the width */
+            height: 250px;          /* Fixed height for all images */
+            object-fit: contain;    /* Maintains the aspect ratio */
+            border-radius: 8px;     /* Optional rounded corners */
+        }
+
+        .card-body {
+            flex-grow: 1;           /* Takes available space */
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end; /* Aligns the text at the bottom */
+        }
+
+        .product-actions button {
+            background-color: #28a745;
+            color: white;
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .product-actions button:hover {
+            background-color: #218838;
+        }
+
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
+        <div class="container">
+            <a class="navbar-brand" href="#">Bellus</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'homepage' %}">Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'shop' %}">Shop</a>
+                    </li>
+                    <!-- <li class="nav-item">
+                        <a class="nav-link" href="#">Collections</a>
+                    </li> -->
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">About</a>
+                    </li>
+                </ul>
+                <form class="d-flex me-3" action="{% url 'shop' %}" method="GET">
+                    <input class="form-control me-2" type="search" name="search" placeholder="Search products" aria-label="Search">
+                    <button class="btn btn-outline-primary" type="submit">
+                        <i class="fas fa-search"></i> <!-- Search Icon -->
+                    </button>
+                </form>                
+                <div class="d-flex">
+                    <a href="{% url 'cart_view' %}" class="btn btn-outline-primary me-2">
+                        <i class="fas fa-shopping-bag"></i>
+                    </a>
+                    <a href="{% url 'user_profile' %}" class="btn btn-outline-primary">
+                        <i class="fas fa-user"></i>
+                    </a>
+                    <ul class="navbar-nav ms-auto">
+                        {% if user.is_authenticated %}
+                          <li class="nav-item"><a href="{% url 'user_logout' %}"><button class="nav-btn">Logout</button></a></li>
+                        {% else %}
+                          <li class="nav-item"><a href="{% url 'user_login' %}"><button class="nav-btn">Login</button></a></li>
+                        {% endif %}
+                      </ul>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+
+    <main>
+        <section class="py-5 bg-light">
+            <div class="container">
+                <div class="row">
+                    <!-- Sidebar Filters -->
+                    <div class="col-md-3">
+                        <div class="bg-white p-4 rounded shadow-sm">
+                            <h4>Filters</h4>
+                            <form id="filter-form" method="GET" action="{% url 'shop' %}" class="d-flex flex-column align-items-center">
+                                <!-- Sort By Options -->
+                                <div class="mb-3 w-100">
+                                    <label for="sort_by" class="form-label">Sort By</label>
+                                    <select name="sort_by" id="sort_by" class="form-select">
+                                        <option value="">Sort By</option>
+                                        <option value="price_low_to_high" {% if sort_by == "price_low_to_high" %}selected{% endif %}>Price: Low to High</option>
+                                        <option value="price_high_to_low" {% if sort_by == "price_high_to_low" %}selected{% endif %}>Price: High to Low</option>
+                                        <option value="name_a_to_z" {% if sort_by == "name_a_to_z" %}selected{% endif %}>Name: A to Z</option>
+                                        <option value="name_z_to_a" {% if sort_by == "name_z_to_a" %}selected{% endif %}>Name: Z to A</option>
+                                        <option value="new_arrivals" {% if sort_by == "new_arrivals" %}selected{% endif %}>New Arrivals</option>
+                                    </select>
+                                </div>
+
+                                <!-- Category Selection -->
+                                <div class="mb-3 w-100">
+                                    <label for="category" class="form-label">Category</label>
+                                    <select name="category" id="category" class="form-select">
+                                        <option value="">All Categories</option>
+                                        {% for category in categories %}
+                                            <option value="{{ category.id }}" {% if category.id == selected_category %}selected{% endif %}>{{ category.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+
+                                <!-- Price Range Selection -->
+                                <div class="mb-3 w-100">
+                                    <label for="price_range" class="form-label">Price</label>
+                                    <select name="price_range" id="price_range" class="form-select">
+                                        <option value="">All Price Ranges</option>
+                                        <option value="0-100" {% if selected_price_range == "0-100" %}selected{% endif %}>100- 499</option>
+                                        <option value="100-200" {% if selected_price_range == "100-200" %}selected{% endif %}>500 - 999</option>
+                                        <option value="200+" {% if selected_price_range == "200+" %}selected{% endif %}>1000+</option>
+                                    </select>
+                                </div>
+
+                                <!-- Brand Selection -->
+                                <div class="mb-3 w-100">
+                                    <label for="brand" class="form-label">Brand</label>
+                                    <select name="brand" id="brand" class="form-select">
+                                        <option value="">All Brands</option>
+                                        {% for brand in brands %}
+                                            <option value="{{ brand }}" {% if brand == selected_brand %}selected{% endif %}>{{ brand }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+
+                                <!-- Search Bar -->
+                                    <div class="mb-3 w-100">
+                                        <input type="text" name="search" value="{{ search_query }}" placeholder="Search products..." class="form-control">
+                                    </div>
+                                    <button type="submit" class="btn btn-primary w-100">Apply Filters</button>
+                            </form>
+                        </div>
+                    </div>
+
+
+            <!-- Product Grid -->
+            <div class="col-md-9">
+                <div class="row g-4">
+                    {% for item in products_with_images %}
+                    <div class="col-md-3">
+                        <div class="card product-card h-100">
+                            {% if item.image %}
+                            <a href="{% url 'product_detail' item.product.id %}">
+                                <div class="product-image">
+                                    <img src="{{ item.image }}" alt="{{ product.product_name }}" class="img-fluid mb-2">
+                                </div>
+                            </a>
+                            {% endif %}
+                            <div class="card-body d-flex flex-column">
+                                <h5 class="card-title">{{ item.product.product_name }}</h5>
+                                <p class="card-text">Price: ₹{{ item.product.price }}</p>
+                                <a href="#" class="btn btn-primary">Add to Cart</a>
+                            </div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <p>No products available based on the selected filters.</p>
+                    {% endfor %}
+                </div>
+            </div>
+
+        </section>
+    </main>
+
+    
+    <footer class="py-5">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-4 mb-4">
+                    <h5>About Bellus</h5>
+                    <p>Bellus offers a curated selection of elegant and timeless women's fashion. Our pieces are designed to empower and inspire.</p>
+                </div>
+                <div class="col-md-4 mb-4">
+                    <h5>Quick Links</h5>
+                    <ul class="list-unstyled">
+                        <li><a href="#" class="text-white">Shop</a></li>
+                        <li><a href="#" class="text-white">Collections</a></li>
+                        <li><a href="#" class="text-white">About Us</a></li>
+                        <li><a href="#" class="text-white">Contact</a></li>
+                    </ul>
+                </div>
+                <div class="col-md-4 mb-4">
+                    <h5>Connect With Us</h5>
+                    <div class="d-flex">
+                        <a href="#" class="text-white me-3"><i class="fab fa-facebook-f"></i></a>
+                        <a href="#" class="text-white me-3"><i class="fab fa-instagram"></i></a>
+                        <a href="#" class="text-white me-3"><i class="fab fa-twitter"></i></a>
+                        <a href="#" class="text-white"><i class="fab fa-pinterest"></i></a>
+                    </div>
+                </div>
+            </div>
+            <hr class="my-4 bg-light">
+            <p class="text-center mb-0">&copy; 2023 Bellus. All rights reserved.</p>
+        </div>
+    </footer>
+
+<!-- JavaScript to trigger form submission on filter change -->
+<script>
+   document.addEventListener('DOMContentLoaded', function() {
+    // Select all filter elements
+    const filterElements = document.querySelectorAll('#filter-form select');
+    
+    filterElements.forEach(function(element) {
+        // Listen for changes on each select element
+        element.addEventListener('change', function() {
+            document.getElementById('filter-form').submit(); // Submit the form
+        });
+    });
+});
+
+</script>
+<script>
+    document.getElementById('proceed-to-payment').addEventListener('click', function() {
+        var paymentMethod = document.getElementById('payment-method').value;
+        if (paymentMethod === 'razorpay') {
+            window.location.href = "{% url 'payment' %}";
+        } else {
+            // Handle other payment methods
+        }
+    });
+</script>
+</body>
+</html>
+
+

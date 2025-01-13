@@ -1,0 +1,476 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Coupon Display</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        .sidebar {
+            background-color: #fff;
+            min-height: 100vh;
+            padding: 20px;
+            border-right: 1px solid #eee;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: white;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 15px;
+        }
+        .content{
+            background-color: white;
+        }
+
+        header {
+            background-color: #ff6b6b;
+            color: #fff;
+            padding: 1rem;
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+        }
+
+        .logout-btn {
+            background-color: #fff;
+            color: #2c614f;
+            border: none;
+            padding: 0.5rem 1rem;
+            margin-left: 1rem;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        .nav-link {
+            color: #2c614f;
+            padding: 10px 15px;
+            margin: 5px 0;
+            border-radius: 5px;
+        }
+        .navbar-brand {
+            font-size: 2rem;
+            color:  #2c614f;
+        }
+        .nav-link.active {
+            background-color: #2c614f;
+            color: white;
+        }
+        .btn1{
+            width: 80px;
+            background-color: #2c614f;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+
+        .main-content {
+            display: flex;
+            margin-top: 1rem;
+        }
+
+        .sidebar ul {
+            list-style-type: none;
+        }
+
+        .sidebar ul li {
+            margin-bottom: 0.5rem;
+        }
+
+        .sidebar ul li a {
+            color: #333;
+            text-decoration: none;
+            display: block;
+            padding: 0.5rem;
+            border-radius: 4px;
+        }
+
+        .sidebar ul li a:hover {
+            background-color: #f4f4f4;
+        }
+
+        .content {
+            flex: 1;
+            padding: 1rem;
+        }
+
+        .overview {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .search-bar {
+            display: flex;
+            align-items: center;
+        }
+
+        .search-bar input {
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        .chart {
+            background-color: #fff;
+            padding: 1rem;
+            border-radius: 4px;
+            margin-bottom: 1rem;
+        }
+
+        .chart h3 {
+            margin-bottom: 1rem;
+        }
+
+        .bar-chart {
+            display: flex;
+            align-items: flex-end;
+            height: 200px;
+            gap: 10px;
+        }
+
+        .bar {
+            flex: 1;
+            background-color: #2c614f;
+            transition: height 0.3s ease;
+        }
+
+        .customer-metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
+        .metric-card {
+            background-color: #fff;
+            padding: 1rem;
+            border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .metric-info h4 {
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .metric-info p {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .metric-chart {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: 4px solid #ddd;
+            border-top-color: #2c614f;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                flex-direction: column;
+            }
+
+            .sidebar {
+                width: 100%;
+                height: auto;
+                margin-bottom: 1rem;
+            }
+
+            .sidebar ul {
+                display: flex;
+                flex-wrap: wrap;
+            }
+
+            .sidebar ul li {
+                margin-right: 0.5rem;
+            }
+
+            .customer-metrics {
+                grid-template-columns: 1fr;
+            }
+        }
+        .coupon-card {
+            transition: transform 0.3s ease-in-out;
+        }
+        .coupon-card:hover {
+            transform: translateY(-5px);
+        }
+        .coupon-code {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #007bff;
+        }
+        .offer-rate {
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: #28a745;
+        }
+        /* Add this CSS in your stylesheet */
+.container {
+    display: flex;
+    flex-direction: row;
+    gap: 20px;
+}
+
+.sidebar {
+    position: relative; /* Set relative positioning to position elements inside */
+}
+
+.col-md-10 {
+    flex-grow: 1;
+}
+
+/* Coupon section styling */
+.coupon-card {
+    width: 100%;
+}
+
+/* Style the coupon card to float to the right */
+.sidebar .row {
+    position: absolute;
+    top: 20px; /* Set distance from top */
+    right: 10px;
+    width: 100%;
+}
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
+        <div class="container">
+            <a class="navbar-brand" href="#">Bellus</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">Shop</a>
+                    </li>
+                    <!-- <li class="nav-item">
+                        <a class="nav-link" href="#">Collections</a>
+                    </li> -->
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">About</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'logout' %}"><button class="btn1">Logout</button></a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+    <div class="container mt-5">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-2 sidebar px-0">
+                <nav class="nav flex-column">
+                    <a class="nav-link active" href="{% url 'admin_dashboard' %}"><i class="fas fa-dashboard me-2"></i> Dashboard</a>
+                    <a class="nav-link" href="{% url 'admin_product' %}"><i class="fas fa-box me-2"></i> Products</a>
+                    <a class="nav-link" href="{% url 'customer_search' %}"><i class="fas fa-users me-2"></i> Customers</a>
+                    <a class="nav-link" href="{% url 'admin_order' %}"><i class="fas fa-shopping-cart me-2"></i> Orders</a>
+                    <a class="nav-link" href="{% url 'admin_category' %}"><i class="fas fa-tags me-2"></i> Category</a>
+                    <a class="nav-link" href="{% url 'admin_coupon' %}"><i class="fas fa-box me-2"></i> Coupon</a>
+                    <a class="nav-link" href="{% url 'salesreport' %}"><i class="fas fa-chart-bar me-2"></i> Sales Report</a>
+                    <a class="nav-link" href="#"><i class="fas fa-image me-2"></i> Banner Manage</a>
+                    <a class="nav-link" href="#"><i class="fas fa-gift me-2"></i> Offers</a>
+                </nav>
+            </div>
+    
+            <!-- Main Content -->
+            <div class="col-md-10">
+                <h1 class="mb-4">Admin Coupon Management</h1>
+    
+                <div class="row mb-4">
+                    <div class="col">
+                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addCouponModal">
+                            Add New Coupon
+                        </button>
+                    </div>
+                </div>
+    
+                <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+                    <!-- Coupon Card 1 -->
+                    {% for coupon in coupons %}
+                        <div class="col">
+                            <!-- <form method="POST" action="{% url 'admin_delete_coupon' coupon.id %}">
+                                {% csrf_token %} -->
+                                <div class="card h-100 coupon-card">
+                                    <div class="card-body">
+                                        <h5 class="card-title">{{ coupon.name }}</h5>
+                                        <p class="card-text coupon-code">{{ coupon.code }}</p>
+                                        <p class="card-text offer-rate">
+                                            {% if coupon.discount_type == 'percentage' %}
+                                                {{ coupon.offer_rate }}% off
+                                            {% else %}
+                                                ${{ coupon.offer_rate }} off
+                                            {% endif %}
+                                        </p>
+                                        <p class="card-text">Condition: {{ coupon.condition }}</p>
+                                        <p class="card-text"><small class="text-muted">Valid until: {{ coupon.validity_date|date:"d/m/Y" }}</small></p>
+                                    </div>
+                                    <div class="card-footer bg-transparent border-top-0">
+                                        <button type="button" class="btn btn-sm btn-outline-primary me-2">
+                                            <a href="{% url 'admin_edit_coupon' coupon.id %}" style='text-decoration:none;'>Edit</a>
+                                        </button>
+                                        <form method="POST" action="{% url 'admin_delete_coupon' coupon.id %}" style="display:inline;">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                                        </form>
+                                        
+                                    </div>
+                                </div>
+                            <!-- </form> -->
+                        </div>
+                    {% empty %}
+                        <div class="col">
+                            <p>No coupons available.</p>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Coupon Modal -->
+<div class="modal fade" id="addCouponModal" tabindex="-1" aria-labelledby="addCouponModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addCouponModalLabel">Add New Coupon</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form method="POST" action="{% url 'admin_coupon' %}">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="couponName" class="form-label">Coupon Name</label>
+                        <input type="text" class="form-control" id="couponName" name="couponName" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="couponCode" class="form-label">Coupon Code</label>
+                        <input type="text" class="form-control" id="couponCode" name="couponCode" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="couponCondition" class="form-label">Condition</label>
+                        <textarea class="form-control" id="couponCondition" name="couponCondition" rows="2" required></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="offerRate" class="form-label">Offer Rate</label>
+                        <div class="input-group">
+                            <input type="number" class="form-control" id="offerRate" name="offerRate" required>
+                            <span class="input-group-text">%</span>
+                        </div>
+                    </div>
+                    <!-- Discount Type -->
+                    <div class="mb-3">
+                        <label for="discountType" class="form-label">Discount Type</label>
+                        <select class="form-select" id="discountType" name="discountType" required>
+                            <option value="percentage">Percentage</option>
+                            <option value="fixed">Fixed Amount</option>
+                        </select>
+                    </div>
+                    <!-- Discount Value -->
+                    <div class="mb-3">
+                        <label for="discountValue" class="form-label">Discount Value</label>
+                        <input type="number" class="form-control" id="discountValue" name="discountValue" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="couponValidity" class="form-label">Valid Until</label>
+                        <input type="date" class="form-control" id="couponValidity" name="couponValidity" required>
+                    </div>
+                    <!-- Maximum Uses -->
+                    <div class="mb-3">
+                        <label for="maxUses" class="form-label">Maximum Uses</label>
+                        <input type="number" class="form-control" id="maxUses" name="maxUses" value="1" required>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="submit" class="btn btn-primary">Save Coupon</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.getElementById('saveCouponBtn').addEventListener('click', function() {
+    // Get the values from the input fields
+    const couponName = document.getElementById('couponName').value;
+    const couponCode = document.getElementById('couponCode').value;
+    const couponCondition = document.getElementById('couponCondition').value;
+    const offerRate = document.getElementById('offerRate').value;
+    const couponValidity = document.getElementById('couponValidity').value;
+    const discountType = document.getElementById('discountType').value; // Corrected: Get discountType value
+    const discountValue = document.getElementById('discountValue').value; // Corrected: Get discountValue value
+    const maxUses = document.getElementById('maxUses').value; // Corrected: Get maxUses value
+
+    // Make an AJAX POST request to save the coupon
+    fetch('{% url "admin_coupon" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRFToken': '{{ csrf_token }}'  // Django CSRF token for security
+        },
+        body: new URLSearchParams({
+            'couponName': couponName,
+            'couponCode': couponCode,
+            'couponCondition': couponCondition,
+            'offerRate': offerRate,
+            'couponValidity': couponValidity,
+            'discountType': discountType, // Corrected: Include discountType in the POST data
+            'discountValue': discountValue, // Corrected: Include discountValue in the POST data
+            'maxUses': maxUses
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            alert(data.message);  // Show success message
+            // Optionally, close the modal
+            $('#addCouponModal').modal('hide');
+        } else {
+            alert('Failed to add coupon.');
+        }
+    })
+    .catch(error => console.error('Error:', error));
+});
+
+    </script>
+</body>
+</html>

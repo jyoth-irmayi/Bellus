@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sales Report Dashboard with Filters</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet">
+    <style>
+        .metric-card {
+            border-left: 4px solid #0d6efd;
+            transition: transform 0.2s;
+        }
+        
+        .metric-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .filter-section {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .table-responsive {
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .status-badge {
+            width: 80px;
+        }
+
+        .sortable {
+            cursor: pointer;
+        }
+
+        .sortable:hover {
+            background-color: #f8f9fa;
+        }
+
+        .date-range-picker {
+            background: white !important;
+            padding: 8px 12px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            width: 100%;
+        }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        .sidebar {
+            background-color: #fff;
+            min-height: 100vh;
+            padding: 20px;
+            border-right: 1px solid #eee; /* Updated border style */
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: white;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 15px;
+        }
+        .content{
+            background-color: white;
+        }
+
+        header {
+            background-color:#2c614f ;
+            color: #fff;
+            padding: 1rem;
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+        }
+
+        .logout-btn {
+            background-color: #fff;
+            color: #2c614f;
+            border: none;
+            padding: 0.5rem 1rem;
+            margin-left: 1rem;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        .nav-link {
+            color: #2c614f;
+            padding: 10px 15px;
+            margin: 5px 0;
+            border-radius: 5px;
+        }
+        .navbar-brand {
+            font-size: 2rem;
+            color:  #2c614f;
+        }
+        .nav-link.active {
+            background-color: #2c614f;
+            color: white;
+        }
+        .btn1{
+            width: 80px;
+            background-color: #2c614f;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+
+        .main-content {
+            display: flex;
+            margin-top: 1rem;
+        }
+
+        .sidebar ul {
+            list-style-type: none;
+        }
+
+        .sidebar ul li {
+            margin-bottom: 0.5rem;
+        }
+
+        .sidebar ul li a {
+            color: #333;
+            text-decoration: none;
+            display: block;
+            padding: 0.5rem;
+            border-radius: 4px;
+        }
+
+        .sidebar ul li a:hover {
+            background-color: #f4f4f4;
+        }
+
+        .content {
+            flex: 1;
+            padding: 1rem;
+        }
+
+        .overview {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .search-bar {
+            display: flex;
+            align-items: center;
+        }
+
+        .search-bar input {
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        .chart {
+            background-color: #fff;
+            padding: 1rem;
+            border-radius: 4px;
+            margin-bottom: 1rem;
+        }
+
+        .chart h3 {
+            margin-bottom: 1rem;
+        }
+
+        .bar-chart {
+            display: flex;
+            align-items: flex-end;
+            height: 200px;
+            gap: 10px;
+        }
+
+        .bar {
+            flex: 1;
+            background-color: #2c614f;
+            transition: height 0.3s ease;
+        }
+
+        .customer-metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
+        .metric-card {
+            background-color: #fff;
+            padding: 1rem;
+            border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .metric-info h4 {
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .metric-info p {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .metric-chart {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: 4px solid #ddd;
+            border-top-color: #2c614f;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                flex-direction: column;
+            }
+
+            .sidebar {
+                width: 100%;
+                height: auto;
+                margin-bottom: 1rem;
+                border-right: none; /* Updated border style for responsiveness */
+                border-bottom: 1px solid #eee; /* Updated border style for responsiveness */
+            }
+
+            .sidebar ul {
+                display: flex;
+                flex-wrap: wrap;
+            }
+
+            .sidebar ul li {
+                margin-right: 0.5rem;
+            }
+
+            .customer-metrics {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+
+</head>
+<body class="bg-light">
+    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
+        <div class="container">
+            <a class="navbar-brand" href="#">Bellus</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">Shop</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">About</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'logout' %}"><button class="btn1">Logout</button></a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-md-2 sidebar">
+                <nav class="nav flex-column">
+                    <a class="nav-link" href="{% url 'admin_dashboard' %}"><i class="fas fa-dashboard me-2"></i> Dashboard</a>
+                    <a class="nav-link" href="{% url 'admin_product' %}"><i class="fas fa-box me-2"></i> Products</a>
+                    <a class="nav-link" href="{% url 'customer_search' %}"><i class="fas fa-users me-2"></i> Customers</a>
+                    <a class="nav-link" href="{% url 'admin_order' %}"><i class="fas fa-shopping-cart me-2"></i> Orders</a>
+                    <a class="nav-link" href="{% url 'admin_category' %}"><i class="fas fa-tags me-2"></i> Category</a>
+                    <a class="nav-link" href="#"><i class="fas fa-cog me-2"></i> Settings</a>
+                    <a class="nav-link active" href="{% url 'salesreport' %}"><i class="fas fa-chart-bar me-2"></i> Sales Report</a>
+                    <a class="nav-link" href="#"><i class="fas fa-image me-2"></i> Banner Manage</a>
+                </nav>
+            </div>
+            <div class="col-md-10 px-4">
+                <!-- Header -->
+                <header class="mb-4">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h1 class="h3">Sales Report Dashboard</h1>
+                        <form method="get" action="{% url 'export_sales_report' %}">
+                            <button type="submit" class="btn btn-primary">Export Report to PDF</button>
+                        </form>
+                        <form method="get" action="{% url 'export_sales_report_excel' %}">
+                            <button type="submit" class="btn btn-primary">Export Report to EXCEL</button>
+                        </form>
+                    </div>
+                    <div class="filter-section">
+                        <form method="GET" action="{% url 'sales_report_data' %}" class="mb-4">
+                            <div class="row">
+                                <!-- Date Range Filter -->
+                                <div class="col-md-3">
+                                    <label for="start_date">Start Date</label>
+                                    <input type="date" name="start_date" id="start_date" class="form-control" value="{{ start_date }}" max="{{ today }}">
+                                </div>
+                                <div class="col-md-3">
+                                    <label for="end_date">End Date</label>
+                                    <input type="date" name="end_date" id="end_date" class="form-control" value="{{ end_date }}" max="{{ today }}">
+                                </div>
+                                <!-- Date Grouping Filter -->
+                                <div class="col-md-3">
+                                    <label for="date_filter">Group by</label>
+                                    <select name="date_filter" id="date_filter" class="form-control">
+                                        <option value="day" {% if date_filter == 'day' %}selected{% endif %}>Day</option>
+                                        <option value="month" {% if date_filter == 'month' %}selected{% endif %}>Month</option>
+                                        <option value="year" {% if date_filter == 'year' %}selected{% endif %}>Year</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label>&nbsp;</label>
+                                    <button type="submit" class="btn btn-primary form-control">Apply Filter</button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                    
+                    <!-- Summary Metrics -->
+                    <div class="row g-3 mb-4">
+                        <div class="col-12 col-md-6 col-lg-3">
+                            <div class="card metric-card h-100">
+                                <div class="card-body">
+                                    <h6 class="text-muted mb-2">Total Sales</h6>
+                                    <h3 class="mb-0" id="totalSales">{{ total_sales }}</h3>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12 col-md-6 col-lg-3">
+                            <div class="card metric-card h-100">
+                                <div class="card-body">
+                                    <h6 class="text-muted mb-2">Total Orders</h6>
+                                    <h3 class="mb-0" id="totalOrders">{{ total_orders }}</h3>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12 col-md-6 col-lg-3">
+                            <div class="card metric-card h-100">
+                                <div class="card-body">
+                                    <h6 class="text-muted mb-2">Total sold</h6>
+                                    <h3 class="mb-0" id="avgOrderValue">{{total_products_sold}}</h3>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </header>
+
+                <!-- Sales Table -->
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0">Detailed Sales Report</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-bordered">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Total Products Sold</th>
+                                        <th>Total Price</th>
+                                        <th>Returned Orders</th>
+                                        <th>Canceled Orders</th>
+                                        <th>Delivered Orders</th>
+                                        <th>Total Orders</th>
+                                        <th>Actual Sales (Excluding Returns & Cancellations)</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for data in sales_data %}
+                                        <tr>
+                                            <td>{{ data.grouped_date }}</td>
+                                            <td>{{ data.total_products_sold }}</td>
+                                            <td>${{ data.total_price }}</td>
+                                            <td>{{ data.returned_products }}</td>
+                                            <td>{{ data.canceled_products }}</td>
+                                            <td>{{ data.delivered_products }}</td>
+                                            <td>{{ data.total_orders }}</td>
+                                            <td>${{ data.actual_sales }}</td>
+                                        </tr>
+                                    {% empty %}
+                                        <tr>
+                                            <td colspan="8">No results found</td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+
+</body>
+</html>
+
