@@ -350,16 +350,7 @@
 });
 
 </script>
-<script>
-    document.getElementById('proceed-to-payment').addEventListener('click', function() {
-        var paymentMethod = document.getElementById('payment-method').value;
-        if (paymentMethod === 'razorpay') {
-            window.location.href = "{% url 'payment' %}";
-        } else {
-            // Handle other payment methods
-        }
-    });
-</script>
+
 </body>
 </html>
 

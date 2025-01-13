@@ -22,7 +22,7 @@
         <script
             src="https://checkout.razorpay.com/v1/checkout.js"
             data-key="{{ razorpay_key }}" 
-            data-amount="{{ grand_total|floatformat:2|multiply:100 }}"
+            data-amount="{{ grand_total }}"
             data-currency="INR"
             data-order_id="{{ razorpay_order_id }}"
             data-buttontext="Pay with Razorpay"

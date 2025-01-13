@@ -403,6 +403,7 @@ def user_logout(request):
 
 
 @login_required
+@login_required
 def product_detail(request, product_id):
     # Fetch the product
     product = get_object_or_404(Product.objects.prefetch_related('variants__images'), id=product_id)
@@ -419,7 +420,7 @@ def product_detail(request, product_id):
         selected_variant = product.variants.first()
 
     # Check if the selected variant is in the wishlist
-    is_in_wishlist = Wishlist.objects.filter(user=request.user, variant=selected_variant).exists()
+    is_in_wishlist = Wishlist.objects.filter(user=request.user, variant=selected_variant.id).exists()
 
     # Gather images for the selected variant
     images = selected_variant.images.all() if selected_variant else []
@@ -465,6 +466,7 @@ def product_detail(request, product_id):
         'is_in_wishlist': is_in_wishlist,
     }
     return render(request, 'product_display.html', context)
+
 
 
 
@@ -936,87 +938,6 @@ def shop(request):
 
     return render(request, 'week2/shop.html', context)
 
-# def checkout_address(request):
-#     user = request.user
-#     addresses = Address.objects.filter(user=user)  # Fetch user's addresses
-#     if request.method == 'POST':
-#         address_id = request.POST.get('address')  # Get the selected address ID
-#         if address_id:
-#             address = Address.objects.get(id=address_id, user=user)
-#             request.session['selected_address'] = address.id  # Store selected address in session
-#             return redirect('order_summary')  # Redirect to order summary page
-
-#     # edit_address = None
-#     # edit_id = request.GET.get('edit')  # Check for the 'edit' parameter in the URL
-#     # print('edit ',edit_id)
-#     # if edit_id:  # Handle edit
-#     #     edit_address = get_object_or_404(Address, id=edit_id, user=user)
-
-#     if request.method == 'POST':
-#         name = request.POST.get('name', "").strip()
-#         phone_number = request.POST.get('phone', "").strip()
-#         address_line = request.POST.get('address', "").strip()
-#         location = request.POST.get('location', '').strip()
-#         landmark = request.POST.get('landmark', '').strip()
-#         city = request.POST.get('city', '').strip()
-#         district = request.POST.get('district', '').strip()
-#         state = request.POST.get('state', '').strip()
-#         pincode = request.POST.get('pincode', '').strip()
-#         address_type = request.POST.get('addressType', '').strip()
-#  # Add a new address
-#         Address.objects.create(
-#             user=user,
-#             name=name,
-#             phone_number=phone_number,
-#             address_line=address_line,
-#             location=location,
-#             landmark=landmark,
-#             city=city,
-#             district=district,
-#             state=state,
-#             pincode=pincode,
-#             address_type=address_type,
-#         )
-
-#         return redirect('user_address')
-#     cart, created = Cart.objects.get_or_create(user=request.user)
-#     cart_items = CartItem.objects.filter(cart=cart)
-    
-#     total = Decimal(0)
-#     total_discount = Decimal(0)  # Initialize total discount
-
-#     for item in cart_items:
-#         # Fetch the product associated with the variant in the cart item
-#         product = item.variant.product
-
-#         # Calculate the original price without discount
-#         original_price = item.quantity * product.price
-
-#         # Calculate the discount amount for this item (product discount applied)
-#         discount_amount = (product.discount / Decimal(100)) * original_price
-
-#         # Add to the total price after discount
-#         total += original_price - discount_amount
-
-#         # Add to the total discount
-#         total_discount += discount_amount
-    
-#     # Example tax and shipping calculations
-#     tax = total * Decimal('0.10')
-#     grand_total = total + tax
-    
-#     context = {
-#         'addresses': addresses,
-#         # 'user_address':user_address,
-#         "cart": cart,
-#         "cart_items": cart_items,
-#         "total": total,
-#         "total_discount": total_discount,
-#         "tax": tax,
-#         "grand_total": grand_total,
-#     }
-
-#     return render(request,'week2/checkout_address.html',context)
 
 from decimal import Decimal
 
@@ -1197,6 +1118,7 @@ razorpay_client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZOR
 
 @login_required
 def order_summary(request):
+   
     # Get or create the cart for the user
     cart, created = Cart.objects.get_or_create(user=request.user)
     cart_items = CartItem.objects.filter(cart=cart)
@@ -1324,11 +1246,26 @@ def order_summary(request):
             print(payment_method)
             # Create Razorpay order
             amount_in_paisa = int(grand_total * 100)  # Amount in paisa
-            razorpay_order = razorpay_client.order.create({
-                "amount": amount_in_paisa,
-                "currency": "INR",
-                "payment_capture": "1"
-            })
+            razorpay_client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
+
+            razorpay_order = None
+            try:
+                razorpay_order = razorpay_client.order.create({
+                    "amount": amount_in_paisa,
+                    "currency": "INR",
+                    "payment_capture": "1"
+                })
+                print("Razorpay order created:", razorpay_order)
+            except Exception as e:
+                print("Error creating Razorpay order:", e)
+                messages.error(request, "An error occurred while processing your payment. Please try again.")
+                return redirect('order_summary')
+
+            if not razorpay_order:
+                print("Razorpay order creation failed.")
+                messages.error(request, "Payment processing failed. Please try again later.")
+                return redirect('order_summary')
+
 
             # Create the order with Razorpay payment method
             order = Order.objects.create(
@@ -1337,7 +1274,7 @@ def order_summary(request):
                 payment_method='razorpay',
                 total_amount=grand_total,
                 is_paid=False,
-                razorpay_order_id=razorpay_order["id"]
+                # razorpay_order_id=razorpay_order["id"]
             )
 
             # Create the order items
@@ -1591,29 +1528,6 @@ def user_order_items(request):
     return render(request, 'week2/order_item.html', context)
 
 
-# @login_required
-# def cancel_order_item(request, item_id):
-#     order_item = get_object_or_404(OrderItem, id=item_id, order__user=request.user)
-#     if order_item.status not in ['delivered', 'canceled']:
-#         order_item.status = 'canceled'
-#         order_item.save()
-#     return redirect('user_order_items')
-
-# from django.db import transaction
-# from django.shortcuts import get_object_or_404, redirect
-# from django.contrib import messages
-# from django.db.models import F, Case, When
-
-# @login_required
-# def user_order_items(request):
-#     orders = Order.objects.filter(user=request.user).prefetch_related('order_items__variant__product')
-#     fullname = f"{request.user.firstname} {request.user.lastname}".strip()
-
-#     context = {
-#         'orders': orders,
-#         'fullname': fullname,
-#     }
-#     return render(request, 'week2/order_item.html', context)
 
 @login_required
 def cancel_order_item(request, item_id):
