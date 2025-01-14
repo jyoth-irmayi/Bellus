@@ -17,12 +17,12 @@
     <p><strong>Applied Coupon:</strong> {{ coupon }}</p>
     <p><strong>Available Wallet Balance:</strong> ₹{{ wallet }}</p>
 
-    <form action="{% url 'payment_success' %}" method="POST">
+    <form action="{% url 'razorpay_payment_success' %}" method="POST">
         {% csrf_token %}
         <script
             src="https://checkout.razorpay.com/v1/checkout.js"
             data-key="{{ razorpay_key }}" 
-            data-amount="{{ grand_total }}"
+            data-amount="{{ grand_totalt }}"
             data-currency="INR"
             data-order_id="{{ razorpay_order_id }}"
             data-buttontext="Pay with Razorpay"
@@ -34,7 +34,9 @@
             data-prefill.contact="{{ user.phone }}"
             data-theme.color="#F37254">
         </script>
+        <!-- Hidden Inputs -->
         <input type="hidden" name="order_id" value="{{ order.id }}">
     </form>
 </body>
 </html>
+

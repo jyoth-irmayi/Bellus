@@ -403,7 +403,6 @@ def user_logout(request):
 
 
 @login_required
-@login_required
 def product_detail(request, product_id):
     # Fetch the product
     product = get_object_or_404(Product.objects.prefetch_related('variants__images'), id=product_id)
@@ -420,7 +419,7 @@ def product_detail(request, product_id):
         selected_variant = product.variants.first()
 
     # Check if the selected variant is in the wishlist
-    is_in_wishlist = Wishlist.objects.filter(user=request.user, variant=selected_variant.id).exists()
+    is_in_wishlist = Wishlist.objects.filter(user=request.user, id=selected_variant.id).exists()
 
     # Gather images for the selected variant
     images = selected_variant.images.all() if selected_variant else []
@@ -1374,33 +1373,70 @@ def order_summary(request):
 
 
 
-from django.http import JsonResponse, HttpResponseRedirect
+from django.conf import settings
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import redirect
-import json
+from django.views.decorators.csrf import csrf_exempt
+from django.contrib import messages
+import razorpay
+import logging
 
-def razorpay_payment_success(request):
+# Set up logging
+logger = logging.getLogger(__name__)
+
+@csrf_exempt
+def razorpay_callback(request):
     if request.method == "POST":
+        payment_id = request.POST.get('razorpay_payment_id', '')
+        razorpay_order_id = request.POST.get('razorpay_order_id', '')
+        signature = request.POST.get('razorpay_signature', '')
+
+        client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
+
+        if not all([payment_id, razorpay_order_id, signature]):
+            logger.error("Missing required Razorpay parameters.")
+            messages.error(request, "Invalid payment details received.")
+            return redirect('orders:order-failure')
+
         try:
-            data = json.loads(request.body)
+            # Retrieve the associated order
+            order = Order.objects.get(payment_id=razorpay_order_id)
 
-            # Verify payment signature
-            Utility.verify_payment_signature({
-                "razorpay_order_id": data["razorpay_order_id"],
-                "razorpay_payment_id": data["razorpay_payment_id"],
-                "razorpay_signature": data["razorpay_signature"]
-            })
+            # Verify the payment signature
+            params_dict = {
+                'razorpay_order_id': razorpay_order_id,
+                'razorpay_payment_id': payment_id,
+                'razorpay_signature': signature
+            }
+            client.utility.verify_payment_signature(params_dict)
 
-            # Payment is successful
-            # Perform any additional logic here, such as updating order status in the database
+            # Update order status
+            order.is_paid = True
+            order.save()
 
-            # Redirect to a success page
-            return redirect('payment_success')  # Replace with your success page URL name
+            logger.info(f"Payment successful for order ID: {order.id}")
+            messages.success(request, "Payment successful and order confirmed!")
+            return redirect('payment_success', order_id=order.id)
+
+        except Order.DoesNotExist:
+            logger.error(f"Order with Razorpay Order ID: {razorpay_order_id} does not exist.")
+            messages.error(request, "Order does not exist.")
+            return redirect('orders:order-failure')
+
+        except razorpay.errors.SignatureVerificationError as e:
+            logger.error(f"Signature verification failed for payment ID: {payment_id}. Error: {str(e)}")
+            messages.error(request, "Payment verification failed.")
+            return redirect('orders:order-failure')
+
         except Exception as e:
-            # Payment verification failed
-            return JsonResponse({"success": False, "error": str(e)}, status=400)
+            logger.error(f"Unexpected error occurred: {str(e)}")
+            messages.error(request, "An unexpected error occurred. Please try again.")
+            return redirect('orders:order-failure')
 
-    # Handle non-POST requests
-    return JsonResponse({"error": "Invalid request"}, status=400)
+    else:
+        logger.error("Invalid request method for Razorpay callback.")
+        return HttpResponse("Invalid request method.", status=400)
+
 
 
 

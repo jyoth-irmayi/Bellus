@@ -109,7 +109,7 @@ class Wallet(models.Model):
     balance = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
 
     def __str__(self):
-        return f"{self.user.username}'s Wallet"
+        return f"{self.user.firstname}'s Wallet"
 
 # Transaction Model to keep track of wallet transactions
 class Transaction(models.Model):
