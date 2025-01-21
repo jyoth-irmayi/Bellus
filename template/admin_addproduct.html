@@ -1,131 +1,88 @@
 {% load static %}
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Add Product - Admin Dashboard</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet">
-    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
+
     <style>
+        /* Keep existing styles */
         :root {
             --primary-color: #2c614f;
             --sidebar-width: 240px;
             --text-color: #333333;
         }
-        .logo{
-            color: #2c614f;
-            margin-left: 100px;
-        }
 
-        .sidebar {
-            background-color: #fff;
-            min-height: 100vh;
-            border-right: 1px solid #eee;
-
-        }
-
-        .main-content {
-            margin-left: var(--sidebar-width);
-        }
-
+        /* ... (keep all existing styles) ... */
         .header {
-            background-color: var(--primary-color);
-            padding: 1rem;
+            background-color: #2c614f;
             color: white;
         }
 
         .nav-link {
-            color:#2c614f;
-            padding: 0.75rem 1rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
+            color: #2c614f;
+            padding: 0.8rem 1rem;
         }
-        .navbar-brand {
-            font-size: 2rem;
-            color:  #2c614f;
+
+        .nav-link:hover {
+            background-color: #f8f9fa;
         }
+
         .nav-link.active {
             color: white;
             background-color: #2c614f;
         }
 
-        .nav-link:hover {
-            background-color: #e0e6e4;
-            color: var(--primary-color);
+        .navbar-brand {
+            font-size: 2rem;
+            color: #2c614f;
         }
-        /* Success message style */
-        .success {
-            background-color: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
+
+        /* Add new styles for variant management */
+        .variant-section {
+            border: 1px solid #ddd;
             padding: 15px;
-            border-radius: 5px;
-            font-size: 16px;
             margin-bottom: 15px;
-        }
-
-        /* Error message style */
-        .error {
-            color: red;
-            padding: 15px;
             border-radius: 5px;
-            font-size: 16px;
-            margin-bottom: 15px;
         }
 
-        .product-image-preview {
-            width: 200px;
-            height: 250px;
-            border: 2px dashed #ddd;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 1rem;
+        .size-stock-section {
+            background: #f8f9fa;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 3px;
         }
 
-        .size-selector input[type="checkbox"] {
-            display: none;
-        }
-
-        .size-selector label {
-            border: 1px solid #2c614f;
-            padding: 0.5rem 1rem;
-            margin-right: 0.5rem;
+        .remove-btn {
+            color: #dc3545;
             cursor: pointer;
         }
 
-        .size-selector input[type="checkbox"]:checked + label {
-            background-color: var(--primary-color);
+        .primary-image-badge {
+            position: absolute;
+            top: 5px;
+            left: 5px;
+            background: var(--primary-color);
             color: white;
-            border-color: var(--primary-color);
-        }
-
-        @media (max-width: 768px) {
-            .sidebar {
-                width: 100%;
-                position: relative;
-                height: auto;
-            }
-
-            .main-content {
-                margin-left: 0;
-            }
-
-            .product-form {
-                padding: 1rem;
-            }
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-size: 12px;
         }
     </style>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
 </head>
+
 <body>
+    <!-- Keep existing navbar -->
     <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
         <div class="container">
             <a class="navbar-brand" href="#">Bellus</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+                aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
@@ -146,96 +103,69 @@
             </div>
         </div>
     </nav>
-    <div class="container-fluid">
+
+    <div class="container-fluid p-3" style="margin-left: 200px;">
         <div class="row">
-            <div class="col-md-2 sidebar px-0">
-                <nav class="nav flex-column">
-                    <a class="nav-link" href="{% url 'admin_dashboard' %}"><i class="fas fa-dashboard me-2"></i> Dashboard</a>
-                    <a class="nav-link active" href="{% url 'admin_product' %}"><i class="fas fa-box me-2"></i> Products</a>
-                    <a class="nav-link" href="{% url 'customer_search' %}"><i class="fas fa-users me-2"></i> Customers</a>
-                    <a class="nav-link" href="{% url 'admin_order' %}"><i class="fas fa-shopping-cart me-2"></i> Orders</a>
-                    <a class="nav-link" href="{% url 'admin_category' %}"><i class="fas fa-tags me-2"></i> Category</a>
-                    <a class="nav-link" href="{% url 'admin_coupon' %}"><i class="fas fa-box me-2"></i> Coupon</a>
-                    <a class="nav-link" href="{% url 'salesreport' %}"><i class="fas fa-chart-bar me-2"></i> Sales Report</a>
-                    <a class="nav-link" href="#"><i class="fas fa-image me-2"></i> Banner Manage</a>
-                </nav>
-            </div>
+            <!-- Keep existing sidebar -->
+
             <div class="col-md-10 p-4">
                 <h3 class="mb-4">Add Product</h3>
                 <div class="container mt-4">
-                    <form class="product-form bg-light p-4 rounded" action="{% url 'admin_add_product' %}" method="post" enctype="multipart/form-data">
+                    <form class="product-form bg-light p-4 rounded" action="{% url 'admin_add_product' %}" method="post"
+                        enctype="multipart/form-data">
                         {% csrf_token %}
-                        <div class="row g-3">
-                            {% if messages %}
-                                {% for message in messages %}
-                                    <div class="message {{ message.tags }}">{{ message }}</div>
 
-                                    </div>
-                                {% endfor %}
-                            {% endif %}
-                            <!-- General Product Details -->
+                        <!-- Messages section -->
+                        {% if messages %}
+                        {% for message in messages %}
+                        <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+                        {% endfor %}
+                        {% endif %}
+
+                        <!-- Basic Product Information -->
+                        <div class="row g-3 mb-4">
                             <div class="col-md-6">
                                 <label class="form-label">Product Name</label>
-                                <input type="text" name="product_name" class="form-control">
+                                <input type="text" name="product_name" class="form-control" required>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Category</label>
-                                <select name="category" class="form-control" >
+                                <select name="category" class="form-control" required>
                                     {% for category in categories %}
-                                        <option value="{{ category.id }}">{{ category.name }}</option>
+                                    <option value="{{ category.id }}">{{ category.name }}</option>
                                     {% endfor %}
                                 </select>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Brand</label>
-                                <input type="text" name="brand" class="form-control">
+                                <input type="text" name="brand" class="form-control" required>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">Actual price</label>
-                                <input type="text" name="actual_price" class="form-control" >
+                                <label class="form-label">Base Price</label>
+                                <input type="number" step="0.01" name="price" class="form-control" required>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">Discount</label>
-                                <input type="text" name="discount" class="form-control" >
+                                <label class="form-label">Discount (%)</label>
+                                <input type="number" step="0.01" name="discount" class="form-control" value="0">
                             </div>
-                            <div class="col-md-6">
+                            <div class="col-md-12">
                                 <label class="form-label">Description</label>
-                                <textarea name="description" class="form-control" rows="4"></textarea>
+                                <textarea name="description" class="form-control" rows="4" required></textarea>
                             </div>
-                            </div>
+                        </div>
 
-                            <!-- Modal for Image Cropping -->
-                            <div id="crop-modal" class="modal" tabindex="-1" style="display: none;"> <!-- UPDATED -->
-                                <div class="modal-dialog">
-                                    <div class="modal-content">
-                                        <div class="modal-header">
-                                            <h5 class="modal-title">Crop Image</h5>
-                                            <button type="button" class="btn-close" id="close-crop-modal"></button>
-                                        </div>
-                                        <div class="modal-body">
-                                            <img id="cropper-image" style="width: 50%;height: 50%;" /> <!-- UPDATED -->
-                                        </div>
-                                        <div class="modal-footer">
-                                            <button id="crop-image-btn" class="btn btn-primary">Crop</button> <!-- UPDATED -->
-                                            <button id="cancel-crop-btn" class="btn btn-secondary">Cancel</button> <!-- UPDATED -->
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+                        <!-- Variants Section -->
+                        <div id="variants-container">
+                            <h4 class="mb-3">Product Variants</h4>
+                            <div class="variants"></div>
+                            <button type="button" class="btn btn-outline-primary" onclick="addVariant()">
+                                <i class="fas fa-plus"></i> Add Variant
+                            </button>
+                        </div>
 
-
-                            <!-- Variants -->
-                            <div class="col-12 mt-3">
-                                <h5>Variants</h5>
-                                <div id="variant-container">
-                                    <!-- Dynamic variant forms will appear here -->
-                                </div>
-                                <button type="button" class="btn btn-primary mt-3" id="add-variant-btn">Add Variant</button>
-                            </div>
-                            <div class="col-12 mt-4">
-                                <button type="submit" class="btn btn-success me-2">Publish Product</button>
-                                <a href="{% url 'admin_product' %}" class="btn btn-warning">Cancel</a>
-                            </div>
+                        <div class="mt-4">
+                            <button type="submit" class="btn btn-success me-2">Save Product</button>
+                            <a href="{% url 'admin_product' %}" class="btn btn-secondary">Cancel</a>
                         </div>
                     </form>
                 </div>
@@ -243,138 +173,199 @@
         </div>
     </div>
 
+    <!-- Image Cropping Modal -->
+    <div class="modal fade" id="cropperModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Crop Image</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="img-container">
+                        <img id="cropperImage" src="/placeholder.svg" alt="Image to crop">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="cropButton">Crop</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
-
-    <!-- Include Cropper.js and JavaScript -->
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
 
     <script>
-        let currentCropper = null; 
-        // JavaScript for dynamically adding variant fields
-        document.getElementById('add-variant-btn').addEventListener('click', function() {
-        let variantCount = document.querySelectorAll('.variant-form').length;
-        const variantSection = document.createElement('div');
-        variantSection.classList.add('variant-form', 'mb-3', 'p-3', 'border');
-        variantSection.innerHTML = `
-            <div class="mb-3">
-                <label>Size:</label>
-                <select name="variant_size[]" class="form-control">
-                    <option value="XS">XS</option>
-                    <option value="S">S</option>
-                    <option value="M">M</option>
-                    <option value="L">L</option>
-                    <option value="XL">XL</option>
-                    <option value="XXL">XXL</option>
-                </select>
+        let variantCounter = 0;
+        const availableSizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
+        function addVariant() {
+            const variantId = variantCounter++;
+            const variantHtml = `
+        <div class="variant-section border rounded p-3 mb-4" id="variant-${variantId}">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5>Variant #${variantId + 1}</h5>
+                <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeVariant(${variantId})">
+                    <i class="fas fa-trash"></i>
+                </button>
             </div>
-            <div class="mb-3">
-                <label>Color:</label>
-                <input type="text" name="variant_color[]" class="form-control" placeholder="Color" >
-            </div>
-            <div class="mb-3">
-                <label>Stock:</label>
-                <input type="number" name="variant_stock[]" class="form-control" placeholder="Stock" >
-            </div>
-            <div class="mb-3">
-                <label>Price:</label>
-                <input type="number" step="0.01" name="variant_price[]" class="form-control" placeholder="Price">
-            </div>
-            <div class="mb-3">
-                <label>Images:</label>
-                 <input type="file" name="variant_images_${variantCount}[]" class="form-control" accept="image/*" multiple onchange="previewImages(this, ${variantCount})">
-                <div class="image-previews mt-2" id="preview-${variantCount}"></div>
-            </div>   
-        `;
-        document.getElementById('variant-container').appendChild(variantSection);
 
-        
-    });
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">Color</label>
+                    <input type="text" name="variants[${variantId}][color]" class="form-control" required>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Price</label>
+                    <input type="number" step="0.01" name="variants[${variantId}][price]" class="form-control" required>
+                </div>
 
-       // Function to preview images
-    function previewImages(input, variantCount) {
-        const fileList = input.files;
-        const previewContainer = document.getElementById("preview-" + variantCount);
-        previewContainer.innerHTML = ""; // Clear previous previews
+                <div class="col-12">
+                    <label class="form-label">Sizes and Stock</label>
+                    <div class="sizes-container">
+                        ${availableSizes.map(size => `
+                            <div class="size-stock-section mb-2">
+                                <div class="row align-items-center g-2">
+                                    <div class="col-auto">
+                                        <div class="form-check">
+                                            <input type="checkbox" class="form-check-input" 
+                                                id="size-${variantId}-${size}"
+                                                name="variants[${variantId}][sizes][]"
+                                                value="${size}"
+                                                onchange="toggleStockInput(this, '${variantId}', '${size}')">
+                                            <label class="form-check-label" for="size-${variantId}-${size}">${size}</label>
+                                        </div>
+                                    </div>
+                                    <div class="col">
+                                        <input type="number" 
+                                            class="form-control form-control-sm" 
+                                            name="variants[${variantId}][stocks][${size}]"
+                                            placeholder="Stock quantity"
+                                            disabled>
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
 
-        if (fileList) {
-            Array.from(fileList).forEach((file, index) => {
+                <div class="col-12">
+                    <label class="form-label">Images</label>
+                    <input type="file" 
+                        class="form-control" 
+                        name="variants[${variantId}][images][]" 
+                        accept="image/*" 
+                        multiple 
+                        onchange="handleImageUpload(event, ${variantId})">
+                    <div class="d-flex flex-wrap gap-2 mt-2" id="preview-${variantId}"></div>
+                </div>
+            </div>
+        </div>
+    `;
+
+            document.querySelector('.variants').insertAdjacentHTML('beforeend', variantHtml);
+        }
+
+        // Toggle stock input enable/disable based on checkbox
+        function toggleStockInput(checkbox, variantId, size) {
+            const stockInput = document.querySelector(`input[name="variants[${variantId}][stocks][${size}]"]`);
+            stockInput.disabled = !checkbox.checked;
+            if (!checkbox.checked) stockInput.value = "";
+        }
+
+
+
+        // Function to initialize size checkboxes and stock inputs
+        function initializeSizeCheckboxes(variantId) {
+            const variant = document.getElementById(`variant-${variantId}`);
+            variant.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+                checkbox.addEventListener('change', function () {
+                    const stockInput = this.closest('.size-stock-section').querySelector('input[type="number"]');
+                    stockInput.disabled = !this.checked;
+                    if (!this.checked) stockInput.value = '';
+                });
+            });
+        }
+
+        // Function to remove a variant section
+        function removeVariant(variantId) {
+            document.getElementById(`variant-${variantId}`).remove();
+        }
+
+        // Function to handle image uploads
+        function handleImageUpload(event, variantId) {
+            const files = event.target.files;
+            const previewContainer = document.getElementById(`preview-${variantId}`);
+            previewContainer.innerHTML = '';
+
+            Array.from(files).forEach((file, index) => {
                 const reader = new FileReader();
-                reader.onload = function (event) {
-                    const imgWrapper = document.createElement("div");
-                    imgWrapper.style.display = "inline-block";
-                    imgWrapper.style.marginRight = "10px";
-                    imgWrapper.style.position = "relative";
+                reader.onload = function (e) {
+                    const imgContainer = document.createElement('div');
+                    imgContainer.className = 'position-relative';
 
-                    const img = document.createElement("img");
-                    img.src = event.target.result;
-                    img.style.width = "100px";
-                    img.style.cursor = "pointer";
-                    img.classList.add("crop-image");
+                    const img = document.createElement('img');
+                    img.src = e.target.result;
+                    img.style.width = '100px';
+                    img.style.height = '100px';
+                    img.style.objectFit = 'cover';
+                    img.style.cursor = 'pointer';
 
-                    // Attach click event for cropping
-                    img.addEventListener("click", function () {
-                        openCropper(img, input, index, imgWrapper); // UPDATED
-                    });
+                    const primaryCheckbox = document.createElement('input');
+                    primaryCheckbox.type = 'radio';
+                    primaryCheckbox.name = `variants[${variantId}][primary_image]`;
+                    primaryCheckbox.value = index;
+                    primaryCheckbox.className = 'position-absolute top-0 start-0 m-1';
 
-                    imgWrapper.appendChild(img);
-                    previewContainer.appendChild(imgWrapper);
+                    imgContainer.appendChild(img);
+                    imgContainer.appendChild(primaryCheckbox);
+                    previewContainer.appendChild(imgContainer);
+
+                    img.onclick = () => openCropper(img, event.target, index, imgContainer);
                 };
                 reader.readAsDataURL(file);
             });
         }
-    }
 
-    // Function to open Cropper.js modal
-    function openCropper(imageElement, input, index, imgWrapper) {
-        if (currentCropper) currentCropper.destroy();
+        // Function to open cropper modal
+        function openCropper(img, input, index, container) {
+            const modal = new bootstrap.Modal(document.getElementById('cropperModal'));
+            const cropperImage = document.getElementById('cropperImage');
+            cropperImage.src = img.src;
 
-        const cropperImage = document.getElementById("cropper-image");
-        cropperImage.src = imageElement.src;
+            modal.show();
 
-        document.getElementById("crop-modal").style.display = "block";
-
-        currentCropper = new Cropper(cropperImage, {
-            aspectRatio: 1,
-            viewMode: 1,
-        });
-
-        document.getElementById("crop-image-btn").onclick = function () {
-            const canvas = currentCropper.getCroppedCanvas();
-            canvas.toBlob(blob => {
-                const croppedUrl = URL.createObjectURL(blob);
-
-                // Create a new File object from the cropped blob
-                const croppedFile = new File([blob], `cropped_${input.files[index].name}`, {
-                    type: input.files[index].type,
-                });
-
-                // Update the file input with the cropped file
-                const dataTransfer = new DataTransfer();
-                Array.from(input.files).forEach((file, idx) => {
-                    dataTransfer.items.add(idx === index ? croppedFile : file);
-                });
-                input.files = dataTransfer.files;
-
-                // Update the image preview
-                const croppedImage = document.createElement("img");
-                croppedImage.src = croppedUrl;
-                croppedImage.style.width = "100px";
-                imgWrapper.innerHTML = ""; // Clear existing preview
-                imgWrapper.appendChild(croppedImage);
-
-                document.getElementById("crop-modal").style.display = "none";
-                currentCropper.destroy();
-                currentCropper = null;
+            if (cropper) cropper.destroy();
+            cropper = new Cropper(cropperImage, {
+                aspectRatio: 1,
+                viewMode: 1
             });
-        };
 
-        document.getElementById("skip-crop-btn").onclick = function () { // NEW
-            // Close modal without applying crop
-            document.getElementById("crop-modal").style.display = "none";
-            currentCropper.destroy();
-            currentCropper = null;
-        };
-    }
+            document.getElementById('cropButton').onclick = () => {
+                const canvas = cropper.getCroppedCanvas();
+                canvas.toBlob(blob => {
+                    const croppedFile = new File([blob], `cropped_${input.files[index].name}`, {
+                        type: input.files[index].type
+                    });
+
+                    const dataTransfer = new DataTransfer();
+                    Array.from(input.files).forEach((file, i) => {
+                        dataTransfer.items.add(i === index ? croppedFile : file);
+                    });
+                    input.files = dataTransfer.files;
+
+                    img.src = URL.createObjectURL(blob);
+                    modal.hide();
+                });
+            };
+        }
+
+        // Add initial variant if needed
+        // Uncomment the line below if you want to add the first variant by default
+        addVariant();
+
     </script>
 </body>
 

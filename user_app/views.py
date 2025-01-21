@@ -14,7 +14,7 @@ from datetime import timedelta
 from django.views.decorators.cache import cache_control
 from django.contrib.auth.decorators import login_required
 from .models import UserDetails,Address,Wishlist,Wallet,Transaction
-from admin_app.models import Product,Review,Cart,CartItem,Variant,VariantImage,categorys,Order,OrderItem, Coupon
+from admin_app.models import Product,Review,Cart,CartItem,Variant,VariantImage,VariantSize,categorys,Order,OrderItem, Coupon
 from django.contrib.auth import get_backends
 from .forms import UserLoginForm
 from django.shortcuts import redirect, render
@@ -382,7 +382,7 @@ def homepage(request):
         products_with_images.append({
             "product": product,
             "image": first_image.image.url if first_image else None,
-            "discount_price": first_variant.price if first_variant else product.price,
+            "discount_price": first_variant.actual_price if first_variant else product.price,
             "actual_price": product.price,
             'discount':product.discount
         })
@@ -406,13 +406,15 @@ def user_logout(request):
 def product_detail(request, product_id):
     # Fetch the product
     product = get_object_or_404(Product.objects.prefetch_related('variants__images'), id=product_id)
-    variants_with_size = product.variants.exclude(size__isnull=True, size='')
+    variants_with_size = VariantSize.objects.filter()
+    print(variants_with_size)
 
     # Get the variant from the query parameters (uses default id field)
     variant_id = request.GET.get('variant_id')
     if variant_id:
         try:
             selected_variant = product.variants.get(id=variant_id)
+            print(selected_variant)
         except Variant.DoesNotExist:
             return HttpResponseNotFound("Variant not found")
     else:
@@ -451,7 +453,7 @@ def product_detail(request, product_id):
                     'image': primary_image.image.url,
                     'actual_price': related_product.price,
                     'discount': related_product.discount,
-                    'discounted_price': variant.price,
+                    # 'discounted_price': variant.price,
                 })
 
     context = {
@@ -460,7 +462,7 @@ def product_detail(request, product_id):
         'images': images,
         'related_variants': related_variants,
         'variants_with_size': variants_with_size,
-        'selected_variant_price': selected_variant.price,
+        'selected_variant_price': selected_variant.actual_price,
         'related_products': related_products,
         'is_in_wishlist': is_in_wishlist,
     }
@@ -1271,9 +1273,9 @@ def order_summary(request):
                 user=request.user,
                 address=selected_address,
                 payment_method='razorpay',
+                payment_id=razorpay_order['id'],
                 total_amount=grand_total,
                 is_paid=False,
-                # razorpay_order_id=razorpay_order["id"]
             )
 
             # Create the order items

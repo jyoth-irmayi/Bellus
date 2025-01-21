@@ -360,7 +360,7 @@ footer {
                         {% for variant in variants_with_size %}
                             <option value="{{ variant.id }}" data-variant-id="{{ variant.id }}" {% if variant.id == selected_variant.id %}selected{% endif %}>
                                 {{ variant.size }}
-                                {% if variant.stock == 0 %}(Out of Stock){% endif %}
+                                {% if variant.quantity == 0 %}(Out of Stock){% endif %}
                             </option>
                         {% endfor %}
                     </select>

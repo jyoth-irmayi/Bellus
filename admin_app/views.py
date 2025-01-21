@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect,get_object_or_404
 from django.contrib import messages
 from django.contrib.auth import authenticate, login as auth_login
 from user_app.models import UserDetails
-from .models import categorys,Product,Variant,VariantImage,Order,OrderItem,Coupon
+from .models import categorys,Product,Variant,VariantSize,VariantImage,Order,OrderItem,Coupon
 import cloudinary, cloudinary.uploader
 from PIL import Image
 from django.http import JsonResponse
@@ -165,162 +165,83 @@ from django.shortcuts import render, redirect
 from django.db.models import Q
 import re  # For regex validation
 import cloudinary.uploader  # Ensure Cloudinary is properly configured
-from .models import Product, Variant, VariantImage, categorys
 
 @login_required
 @admin_required
 @cache_control(no_cache=True, no_store=True, must_revalidate=True)
+
+
 def admin_add_product(request):
     if request.method == "POST":
-        # Retrieve form data
-        product_name = request.POST.get("product_name", '').strip()
-        product_id = request.POST.get("product_id", "").strip()
-        price = request.POST.get("actual_price", "").strip()
+        # Process product-level data (unchanged)
+        product_name = request.POST.get("product_name", "").strip()
+        price = request.POST.get("price", "").strip()
         category_id = request.POST.get("category", "").strip()
         brand = request.POST.get("brand", "").strip()
         description = request.POST.get("description", "").strip()
         discount = request.POST.get("discount", "0").strip()
 
-        if not discount:
-            discount = "0"
-
-        # --- Product Validations ---
-        if not product_name or len(product_name) > 100:
-            messages.error(request, "Product name is required and must not exceed 100 characters.")
-            return redirect("admin_add_product")
-
-        # if not re.match(r'^[a-zA-Z0-9_-]+$', product_id):
-        #     messages.error(request, "Product ID must be alphanumeric and can include underscores or hyphens.")
-        #     return redirect("admin_add_product")
-
-        try:
-            price = float(price)
-            if price <= 0:
-                raise ValueError
-        except ValueError:
-            messages.error(request, "Price must be a positive number.")
-            return redirect("admin_add_product")
-
-        if not category_id or not categorys.objects.filter(id=category_id).exists():
-            messages.error(request, "Please select a valid category.")
-            return redirect("admin_add_product")
-
-        if not brand:
-            messages.error(request, "Brand is required.")
-            return redirect("admin_add_product")
-
-        if not description:
-            messages.error(request, "Product description is required.")
-            return redirect("admin_add_product")
-
-        if not 0 <= int(discount) <= 1000:
-            messages.error(request, "Discount must be between 0 and 100.")
-            return redirect("admin_add_product")
-
-        # # Check if Product ID is unique
-        # if Product.objects.filter(product_id=product_id).exists():
-        #     messages.error(request, "Product ID already exists. Please use a unique ID.")
-        #     return redirect("admin_add_product")
-
         # --- Create Product ---
         try:
             product = Product(
                 product_name=product_name,
-                discount=int(discount),
-                category_id=category_id,
+                price=float(price),
+                discount=float(discount),
                 brand=brand,
                 description=description,
-                price=price
+                category_id=category_id,
             )
-            product.full_clean()  # Validate Product fields
+            product.full_clean()
             product.save()
         except ValidationError as e:
             messages.error(request, f"Validation error: {e.messages}")
             return redirect("admin_add_product")
 
         # --- Process Variants ---
-        variant_sizes = request.POST.getlist("variant_size[]")
-        variant_colors = request.POST.getlist("variant_color[]")
-        variant_stocks = request.POST.getlist("variant_stock[]")
-        variant_prices = request.POST.getlist("variant_price[]")
+        variants_data = {}
+        for key in request.POST:
+            if key.startswith("variants["):
+                match = re.match(r"variants\[(\d+)]\[(.+)]", key)
+                if match:
+                    variant_id, field_name = match.groups()
+                    if variant_id not in variants_data:
+                        variants_data[variant_id] = {}
+                    if field_name == "sizes[]":
+                        variants_data[variant_id].setdefault("sizes", []).extend(request.POST.getlist(key))
+                    elif "stocks" in field_name:
+                        size = field_name.split("[")[1].rstrip("]")
+                        variants_data[variant_id].setdefault("stocks", {})[size] = int(request.POST[key])
+                    else:
+                        variants_data[variant_id][field_name] = request.POST[key]
 
-        if not (variant_sizes and variant_colors and variant_stocks and variant_prices):
-            messages.error(request, "Please fill all variant details.")
-            return redirect('admin_add_product')
+        # Debug collected data
+        print("Debug: Collected variants data -", variants_data)
 
-        for i in range(len(variant_sizes)):
-            if not variant_sizes[i] or len(variant_sizes[i]) > 20:
-                messages.error(request, f"Variant size is invalid for variant {i + 1}.")
-                return redirect("admin_add_product")
+        # Process each variant
+        for variant_id, fields in variants_data.items():
+            print(f"Debug: Processing variant {variant_id} - {fields}")
+            color = fields.get("color")
+            variant_price = fields.get("price")
+            sizes = fields.get("sizes][", [])
+            stocks = fields.get("stocks", {})
+            print(size)
+            print(stocks)
 
-            if not variant_colors[i]:
-                messages.error(request, f"Variant color is missing for variant {i + 1}.")
-                return redirect("admin_add_product")
+            # Create variant
+            variant = Variant(product=product, color=color, actual_price=float(variant_price))
+            variant.save()
 
-            try:
-                stock = int(variant_stocks[i])
-                if stock < 0:
-                    raise ValueError
-            except ValueError:
-                messages.error(request, f"Stock must be a non-negative integer for variant {i + 1}.")
-                return redirect("admin_add_product")
+            # Create sizes and stocks
+            for size ,stock  in stocks.items():
+                variant_size = VariantSize(variant=variant, size=size, quantity=stock)
+                variant_size.save()
 
-            try:
-                variant_price = float(variant_prices[i])
-                if variant_price <= 0:
-                    raise ValueError
-            except ValueError:
-                messages.error(request, f"Price must be a positive number for variant {i + 1}.")
-                return redirect("admin_add_product")
+            # Upload images
+            images = request.FILES.getlist(f"variants[{variant_id}][images][]")
+            for image in images:
+                cloudinary_response = cloudinary.uploader.upload(image)
+                VariantImage.objects.create(variant=variant, image=cloudinary_response['secure_url'])
 
-            # Create and save Variant
-            try:
-                variant = Variant(
-                    product=product,
-                    size=variant_sizes[i],
-                    color=variant_colors[i],
-                    stock=stock,
-                    price=variant_price,
-                )
-                variant.full_clean()  # Validate Variant fields
-                variant.save()
-            except ValidationError as e:
-                messages.error(request, f"Validation error for variant {i + 1}: {e.messages}")
-                return redirect("admin_add_product")
-
-            # Handle Variant Images
-            variant_image_files = request.FILES.getlist(f"variant_images_{i}[]")
-            if not variant_image_files:
-                messages.error(request, f"No images uploaded for variant {variant_sizes[i]} ({variant_colors[i]}).")
-                continue
-
-            for index, image_file in enumerate(variant_image_files):
-                if image_file.size > 5 * 1024 * 1024:  # 5MB limit
-                    messages.error(request, f"Image {image_file.name} exceeds the 5MB size limit.")
-                    continue
-
-                if not image_file.content_type.startswith("image/"):
-                    messages.error(request, f"Invalid file type for image {image_file.name}.")
-                    continue
-
-                # Upload to Cloudinary
-                try:
-                    cloudinary_response = cloudinary.uploader.upload(
-                        image_file,
-                        folder=f"product_images/{product.id}/variants/{variant.id}/",
-                        public_id=f"{variant.id:03d}{index + 1:03d}",
-                        overwrite=False,
-                        format="webp",
-                        quality=85
-                    )
-                    cloudinary_url = cloudinary_response['secure_url']
-                    VariantImage.objects.create(variant=variant, image=cloudinary_url)
-                except Exception as e:
-                    messages.error(
-                        request,
-                        f"Error uploading image for variant {variant_sizes[i]} ({variant_colors[i]}): {str(e)}",
-                    )
-                    continue
 
         messages.success(request, "Product and variants added successfully.")
         return redirect("admin_product")
@@ -328,6 +249,7 @@ def admin_add_product(request):
     # Render Add Product Page
     categories = categorys.objects.filter(is_delete=False)
     return render(request, "admin_addproduct.html", {"categories": categories})
+
 
 
 @login_required
