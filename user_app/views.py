@@ -406,15 +406,14 @@ def user_logout(request):
 def product_detail(request, product_id):
     # Fetch the product
     product = get_object_or_404(Product.objects.prefetch_related('variants__images'), id=product_id)
-    variants_with_size = VariantSize.objects.filter()
-    print(variants_with_size)
+    
 
     # Get the variant from the query parameters (uses default id field)
     variant_id = request.GET.get('variant_id')
     if variant_id:
         try:
             selected_variant = product.variants.get(id=variant_id)
-            print(selected_variant)
+            print('selected_variantt:',selected_variant)
         except Variant.DoesNotExist:
             return HttpResponseNotFound("Variant not found")
     else:
@@ -425,6 +424,9 @@ def product_detail(request, product_id):
 
     # Gather images for the selected variant
     images = selected_variant.images.all() if selected_variant else []
+    variants_with_size = selected_variant.sizes.all() if selected_variant else []
+    available_sizes = [size for variant in variants_with_size for size in selected_variant.sizes.all() if size.quantity > 0]
+
 
     # Prepare related variants (exclude the current variant)
     related_variants = []
@@ -447,12 +449,14 @@ def product_detail(request, product_id):
         for variant in variants:
             primary_image = variant.images.filter(is_primary=True).first() or variant.images.first()
             if primary_image:
+                all_sizes_out_of_stock = not variant.sizes.filter(quantity__gt=0).exists()
                 related_products.append({
                     'product': related_product,
                     'variant': variant,
                     'image': primary_image.image.url,
                     'actual_price': related_product.price,
                     'discount': related_product.discount,
+                    'all_sizes_out_of_stock': all_sizes_out_of_stock,
                     # 'discounted_price': variant.price,
                 })
 
@@ -465,6 +469,8 @@ def product_detail(request, product_id):
         'selected_variant_price': selected_variant.actual_price,
         'related_products': related_products,
         'is_in_wishlist': is_in_wishlist,
+        'available_sizes': available_sizes,
+
     }
     return render(request, 'product_display.html', context)
 
@@ -707,53 +713,74 @@ def delete_address(request, address_id):
 
 
 
-
-@login_required
 @login_required
 def add_to_cart(request, product_id):
     if request.method == "POST":
         variant_id = request.POST.get("variant_id")
-        
-        if not variant_id:
-            return JsonResponse({"success": False, "message": "No variant selected"}, status=400)
+        size = request.POST.get("size_id")  # Get the size from the request
 
+        if not variant_id or not size:
+            messages.error(request, "Variant and size must be selected.")
+            return redirect("product_detail", product_id=product_id)
+
+        # Find the variant
         variant = Variant.objects.filter(product_id=product_id, id=variant_id).first()
 
         if not variant:
-            return JsonResponse({"success": False, "message": "Variant not found"}, status=404)
+            messages.error(request, "Variant not found.")
+            return redirect("product_detail", product_id=product_id)
+
+        # Find the size and check stock
+        variant_size = VariantSize.objects.filter(variant=variant, size=size).first()
+
+        if not variant_size:
+            messages.error(request, "Selected size not found for this variant.")
+            return redirect("product_detail", product_id=product_id)
+
+        if variant_size.is_out_of_stock:
+            messages.error(request, "Selected size is out of stock.")
+            return redirect("product_detail", product_id=product_id)
 
         cart, created = Cart.objects.get_or_create(user=request.user)
-        cart_item = CartItem.objects.filter(cart=cart, variant=variant).first()
+        cart_item = CartItem.objects.filter(cart=cart, variant=variant, size=size).first()
 
         if cart_item:
             # Check stock and max quantity constraints
-            if cart_item.quantity >= variant.stock:
-                return JsonResponse({"success": False, "message": "Stock limit reached"}, status=400)
+            if cart_item.quantity >= variant_size.quantity:
+                messages.error(request, "Stock limit reached.")
+                return redirect("product_detail", product_id=product_id)
             if cart_item.quantity >= 5:
-                return JsonResponse({"success": False, "message": "Maximum quantity per product is 5"}, status=400)
+                messages.error(request, "Maximum quantity per product is 5.")
+                return redirect("product_detail", product_id=product_id)
 
             # Increment the quantity
             cart_item.quantity += 1
             cart_item.save()
-            return JsonResponse({"success": True, "message": "Product quantity updated in cart"})
-
-        # Set default discount if not provided
-        discount = getattr(variant, 'discount', 0)
+            messages.success(request, "Product quantity updated in cart.")
+            return redirect("product_detail", product_id=product_id)
 
         # Add new cart item
-        if variant.stock > 0:
-            cart_item = CartItem.objects.create(
-                cart=cart,
-                variant=variant,
-                price=variant.price,
-                discount=discount,
-                quantity=1
-            )
-            return JsonResponse({"success": True, "message": "Product added to cart!"})
-        else:
-            return JsonResponse({"success": False, "message": "Out of stock"}, status=400)
+        discount = getattr(variant, 'discount', 0)  # Default discount
+        if variant_size.quantity > 0:
+            with transaction.atomic():  # Ensure stock is decremented atomically
+                variant_size.reduce_stock(1)
+                cart_item = CartItem.objects.create(
+                    cart=cart,
+                    variant=variant,
+                    size=size,
+                    price=variant.final_price,
+                    discount=discount,
+                    quantity=1
+                )
+            messages.success(request, "Product added to cart!")
+            return redirect("product_detail", product_id=product_id)
 
-    return JsonResponse({"success": False, "message": "Invalid request method"}, status=405)
+        messages.error(request, "Out of stock.")
+        return redirect("product_detail", product_id=product_id)
+
+    messages.error(request, "Invalid request method.")
+    return redirect("product_detail", product_id=product_id)
+
 
 
 

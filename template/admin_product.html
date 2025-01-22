@@ -172,8 +172,9 @@
                     <td><input type="text" name="name" value="{{ item.product.product_name }}" class="form-control form-control-sm"></td>
                     <td><input type="text" name="product_id" value="{{ item.product.product_id }}" class="form-control form-control-sm" readonly></td>
                     <td>
-                        {% if item.variant %}
-                                <input type="number" name="quantity" value="{{ item.variant.stock }}" class="form-control form-control-sm">
+                        
+                        {% if item.firstSize %}
+                                <input type="number" name="quantity" value="{{ item.firstSize.quantity }}" class="form-control form-control-sm">
                             {% else %}
                                 <p>No stock available.</p>
                         {% endif %}
@@ -181,7 +182,7 @@
                     </td>
                     <td>
                             {% if item.variant %}
-                                <input type="number" name="price" value="{{ item.variant.price }}" class="form-control form-control-sm">
+                                <input type="number" name="price" value="{{ item.variant.actual_price }}" class="form-control form-control-sm">
                             {% else %}
                                 <p>No price available.</p>
                             {% endif %}

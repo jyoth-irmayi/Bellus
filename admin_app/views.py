@@ -262,7 +262,8 @@ def admin_product(request):
     # Prepare a list of products with their first variant and image
      products_with_details = []
      for product in products:
-        first_variant = product.variants.first()  # Fetch the first variant
+        first_variant = product.variants.first()
+        firstSize =first_variant.sizes.first()  # Fetch the first variant
         first_image = None
         if first_variant:
             first_image = first_variant.images.first()  # Fetch the first image of the variant
@@ -271,6 +272,7 @@ def admin_product(request):
             "product": product,
             "variant": first_variant,
             "image": first_image.image.url if first_image else None,
+            "firstSize":firstSize,
         })
      return render(request, 'admin_product.html', {"products_with_details":products_with_details})
 

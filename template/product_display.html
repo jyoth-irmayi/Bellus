@@ -98,6 +98,28 @@
     margin-top: 10px;
     border-radius: 7px;
 }
+.size-box {
+        width:30px ;
+        padding: 2px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        cursor: pointer;
+        text-align: center;
+    }
+    .size-box.selected {
+        background-color: #007bff;
+        color: white;
+        border-color: #0056b3;
+    }
+    .size-box.out-of-stock {
+        background-color: #f8d7da;
+        color: #721c24;
+        cursor: not-allowed;
+    }
+    .size-box:hover:not(.out-of-stock) {
+        background-color: #f0f0f0;
+    }
+
 
 .add-review textarea {
     resize: none;
@@ -352,43 +374,59 @@ footer {
                 
                 <p class="pt-3">{{ product.description }}</p>
                 
-
+                
                 <!-- Size Options -->
                 <div class="mb-3 pt-3">
                     <label for="size" class="form-label">Select Size:</label>
-                    <select id="size" class="form-select" onchange="updateVariantId()">
-                        {% for variant in variants_with_size %}
-                            <option value="{{ variant.id }}" data-variant-id="{{ variant.id }}" {% if variant.id == selected_variant.id %}selected{% endif %}>
-                                {{ variant.size }}
-                                {% if variant.quantity == 0 %}(Out of Stock){% endif %}
-                            </option>
-                        {% endfor %}
-                    </select>
-                    <img src="{% static 'images/star.png' %}">
+                    <div class="row">
+                        {% if variants_with_size %}
+                            {% for size in variants_with_size %}
+                                <div class="col-1 mb-2">
+                                    <div class="form-check">
+                                        <!-- Size Box -->
+                                        <div class="size-box 
+                                            {% if size.id == selected_variant.id %}selected{% endif %}
+                                            {% if size.quantity == 0 %}out-of-stock{% endif %}"
+                                            id="size_{{ size.id }}"
+                                            data-size-id="{{ size.id }}"
+                                            {% if size.quantity == 0 %}disabled{% endif %}>
+                                            {{ size.size }}
+                                        </div>
+                                        {% if size.quantity == 0 %}
+                                            <span class="text-muted">(Out of Stock)</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="col-12 text-center">
+                                <p class="text-muted">No sizes available for this product.</p>
+                            </div>
+                        {% endif %}
+                    </div>
                 </div>
 
-                <div class="row">
-                    <!-- Add to Cart Button -->
-                    {% if selected_variant.stock > 0 %}
-                    <div class="col-6" style="width: 160px; background-color: orange; border-radius: 4px; color: white;">
-                        <form id="add-to-cart-form" method="POST" action="{% url 'add_to_cart' product.id %}">
-                            {% csrf_token %}
-                            <input type="hidden" name="variant_id" id="variant_id" value="{{ selected_variant.id }}">
-                            <button type="submit" id="add-to-cart-btn" class="btn w-100">Add to Cart</button>
-                        </form>
-                    </div>
-                
-                    <!-- Place Order Button -->
-                    <div class="col-6" style="width: 200px;">
-                        <button class="btn btn-success w-100">Place Order</button>
-                    </div>
+                <!-- Add to Cart Button -->
+                <div class="row mt-3">
+                    {% if available_sizes|length > 0 %}
+                        <!-- Display Add to Cart Button -->
+                        <div class="col-6" style="width: 160px; background-color: orange; border-radius: 4px; color: white;">
+                            <form id="add-to-cart-form" method="POST" action="{% url 'add_to_cart' product.id %}">
+                                {% csrf_token %}
+                                <input type="hidden" name="variant_id" id="variant_id" value="{{ selected_variant.id }}">
+                                <input type="hidden" id="size_id" name="size_id">
+
+                                <button type="submit" id="add-to-cart-btn" class="btn w-100">Add to Cart</button>
+                            </form>
+                        </div>
                     {% else %}
                         <!-- Out of Stock Message -->
                         <div class="col-12 text-center">
-                            <p class="text-danger fw-bold">This variant is currently out of stock.</p>
+                            <p class="text-danger fw-bold">All sizes for this product are currently out of stock.</p>
                         </div>
                     {% endif %}
                 </div>
+
                 
                 <!-- Popup Notification -->
                 <div id="cart-popup" style="display: none; position: fixed; top: 20px; right: 20px; background: #28a745; color: white; padding: 10px; border-radius: 5px; z-index: 1000;">
@@ -473,14 +511,16 @@ footer {
                         <h5 class="card-title">{{ item.product.product_name }}</h5>
                         <p class="text-muted">Color: {{ item.variant.color }}</p>
                         <p class="price text-center mb-0">
-                            <strong>Rs. {{ item.discounted_price|floatformat:2 }}</strong>
+                            <strong>Rs. {{ item.variant.actual_price|floatformat:2 }}</strong>
                             <span class="text-muted text-decoration-line-through" style="font-size: 0.85em;">Rs. {{ item.actual_price|floatformat:2 }}</span>
                             <span class="text-danger fw-bold">({{ item.discount|floatformat:0 }}rs OFF)</span>
                         </p>
                         <!-- Out of Stock Label -->
-                        {% if item.variant.stock == 0 %}
-                            <div class="text-center text-danger  mt-3" style="background-color: #d5c0c4;">
-                                <strong>Out of Stock</strong>
+                         
+                        <!-- Out of Stock or Unavailable Label -->
+                        {% if item.all_sizes_out_of_stock %}
+                            <div class="text-center text-danger mt-3" style="background-color: #ffe4b5;">
+                                <strong>Unavailable</strong>
                             </div>
                         {% endif %}
                     </div>
@@ -532,61 +572,37 @@ footer {
         }
     </script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+   
     <script>
-        // Function to update the variant ID in the Add to Cart URL
-        function updateVariantId() {
-            const selectedVariantId = document.getElementById("size").value;
-            const addToCartButton = document.getElementById("add-to-cart-btn");
-    
-            // Update the form's hidden variant ID with the selected variant ID
-            document.getElementById("variant_id").value = selectedVariantId;
-        }
-    
-        // Function to change the main product image
-        function changeImage(thumbnail) {
-            const mainImage = document.getElementById("main-image");
-            mainImage.src = thumbnail.src;
-        }
-    
-        // Handle Add to Cart button click via AJAX
-document.getElementById("add-to-cart-btn").addEventListener("click", function (event) {
-    event.preventDefault(); // Prevent form submission
+        document.querySelectorAll(".size-box").forEach((box) => {
+    box.addEventListener("click", function () {
+        const sizeId = this.getAttribute("data-size-id");
+        document.getElementById("size_id").value = sizeId;
 
-    const form = document.getElementById("add-to-cart-form");
-    const formData = new FormData(form);
-
-    fetch(form.action, {
-        method: "POST",
-        body: formData,
-        headers: {
-            "X-Requested-With": "XMLHttpRequest", // Make it AJAX
-        },
-    })
-        .then((response) => response.json())
-        .then((data) => {
-            const popup = document.getElementById("cart-popup");
-
-            if (data.success) {
-                // Show success popup
-                popup.textContent = data.message || "Product added to cart!";
-                popup.style.backgroundColor = "#28a745"; // Success green color
-                popup.style.display = "block";
-            } else {
-                // Show error popup for item already added to cart
-                popup.textContent = data.message || "Failed to add product to cart";
-                popup.style.backgroundColor = "#dc3545"; // Error red color
-                popup.style.display = "block";
-            }
-
-            setTimeout(() => {
-                popup.style.display = "none";
-            }, 3000);
-        })
-        .catch((error) => {
-            console.error("Error:", error);
-            alert("An error occurred while adding to cart.");
-        });
+        // Optional: Add a visual indicator for the selected size
+        document.querySelectorAll(".size-box").forEach((el) => el.classList.remove("selected"));
+        this.classList.add("selected");
+        
+        // Enable Add to Cart button if both variant and size are selected
+        enableAddToCartButton();
+    });
 });
+
+function enableAddToCartButton() {
+    const variantId = document.getElementById("variant_id").value;
+    const sizeId = document.getElementById("size_id").value;
+
+    const addToCartBtn = document.getElementById("add-to-cart-btn");
+
+    // Enable the Add to Cart button if both variant and size are selected
+    if (variantId && sizeId) {
+        addToCartBtn.disabled = false;
+    } else {
+        addToCartBtn.disabled = true;
+    }
+}
+
+document.addEventListener('DOMContentLoaded', enableAddToCartButton);
 
     </script>
     
@@ -652,6 +668,49 @@ document.getElementById("add-to-cart-btn").addEventListener("click", function (e
         });
     });
 </script>
+<!-- click the size selecting button -->
+<script>
+    document.querySelectorAll('.size-box').forEach(box => {
+        box.addEventListener('click', function() {
+            if (!this.classList.contains('out-of-stock')) {
+                document.querySelectorAll('.size-box').forEach(otherBox => {
+                    otherBox.classList.remove('selected');
+                });
+                this.classList.add('selected');
+                // Set the selected size value (you can submit it to a form or handle it however you like)
+                const selectedSizeId = this.getAttribute('data-size-id');
+                console.log("Selected Size ID:", selectedSizeId);
+            }
+        });
+    });
+</script>
+
+
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script>
+      document.addEventListener('DOMContentLoaded', (event) => {
+          {% if messages %}
+              const messages = [
+                  {% for message in messages %}
+                      {
+                          level: "{{ message.tags }}",
+                          text: "{{ message }}"
+                      },
+                  {% endfor %}
+              ];
+              messages.forEach(message => {
+                  Swal.fire({
+                      toast: true,
+                      position: 'top-right',
+                      icon: message.level === 'success' ? 'success' : 'error',
+                      title: message.text,
+                      showConfirmButton: false,
+                      timer: 3000
+                  });
+              });
+          {% endif %}
+      });
+  </script>
     
 </body>
 </html>
