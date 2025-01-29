@@ -1235,47 +1235,50 @@ def export_sales_report(request):
 
     return response
 
-import pandas as pd
+
+import openpyxl
 from django.http import HttpResponse
-from .models import Order, OrderItem, Variant, Product  # Import your models
-@login_required
+from django.shortcuts import render
+from .models import Order
+
 @admin_required
 @cache_control(no_cache=True, no_store=True, must_revalidate=True)
 def export_sales_report_excel(request):
-    # Fetch the data
-    orders = Order.objects.all()
-    data = []
+    # Fetch the orders or sales data
+    orders = Order.objects.all().select_related('user').prefetch_related('order_items__variant__product')
 
+    # Create a new workbook and add a worksheet
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Sales Report"
+
+    # Add the headers for the Excel file
+    headers = ["Order ID", "User Name", "Product Name", "Quantity", "Price", "Discount", "Total", "Order Date", "Status"]
+    ws.append(headers)
+
+    # Populate the worksheet with sales data
     for order in orders:
-        for order_item in order.order_items.all():
-            variant = order_item.variant
-            product = variant.product
-            customer_name = f"{order.user.first_name} {order.user.last_name}"
-            customer_email = order.user.email
-            order_id = order.id
-            order_date = order.order_date.strftime('%Y-%m-%d %H:%M:%S')
-            product_name = product.product_name
-            price = order_item.total_price  # Ensure this property is defined in your OrderItem model
-            status = order_item.status
+        for item in order.order_items.all():
+            row = [
+                order.id,
+                f"{order.user.firstname} {order.user.lastname}",
+                item.variant.product.product_name,
+                item.quantity,
+                item.variant.product.price,
+                item.variant.product.discount,
+                item.quantity * item.variant.product.price * (1 - item.variant.product.discount / 100),
+                order.order_date,
+                item.get_status_display()
+            ]
+            ws.append(row)
 
-            data.append({
-                'Order ID': order_id,
-                'Order Date': order_date,
-                'Customer Name': customer_name,
-                'Customer Email': customer_email,
-                'Product Name': product_name,
-                'Price': price,
-                'Status': status,
-            })
+    # Create the HTTP response with the Excel file as an attachment
+    response = HttpResponse(
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        headers={'Content-Disposition': 'attachment; filename="sales_report.xlsx"'},
+    )
 
-    # Convert to DataFrame
-    df = pd.DataFrame(data)
-
-    # Create the HTTP response with Excel content type
-    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-    response['Content-Disposition'] = 'attachment; filename="sales_report.xlsx"'
-
-    # Write the DataFrame to the response
-    df.to_excel(response, index=False, engine='openpyxl')
+    # Save the workbook into the HTTP response
+    wb.save(response)
 
     return response

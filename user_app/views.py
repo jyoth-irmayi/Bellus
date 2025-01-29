@@ -643,8 +643,6 @@ def user_address(request):
 
         if not address_line:
             errors['address'] = "Address is required."
-        elif not all(c.isalpha() or c.isspace() for c in address_line):
-            errors['address'] = "Address can contain alphabets, numbers, spaces, and characters like commas, periods, and hyphens."
         elif len(address_line) > 100:
             errors['address'] = "Address cannot exceed 100 characters."
 
@@ -1162,14 +1160,6 @@ def add_address_checkout(request):
             errors['phone'] = "Phone number is required."
         elif not phone_number.isdigit() or len(phone_number) != 10:
             errors['phone'] = "Phone number must be exactly 10 digits."
-
-        # if not address_line:
-        #     errors['address'] = "Address is required."
-        # elif not re.match(r'^[a-zA-Z0-9\s,.-]+$', address_line):
-        #     errors['address'] = "Address can contain alphabets, numbers, spaces, and characters like commas, periods, and hyphens."
-        # elif len(address_line) > 100:
-        #     errors['address'] = "Address cannot exceed 100 characters."
-
         if not landmark:
             errors['landmark'] = "Landmark is required."
         elif not landmark.replace(" ", "").isalpha():
