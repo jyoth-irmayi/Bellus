@@ -176,7 +176,6 @@
                     <a class="nav-link active" href="{% url 'admin_category' %}"><i class="fas fa-tags me-2"></i> Category</a>
                     <a class="nav-link" href="{% url 'admin_coupon' %}"><i class="fas fa-box me-2"></i> Coupon</a>
                     <a class="nav-link" href="{% url 'salesreport' %}"><i class="fas fa-chart-bar me-2"></i> Sales Report</a>
-                    <a class="nav-link" href="#"><i class="fas fa-image me-2"></i> Banner Manage</a>
                 </nav>
             </div>
 
@@ -197,7 +196,6 @@
                     <div class="d-flex justify-content-between mb-4">
                         <form method="GET" action="{% url 'category_search' %}">
                         <div class="d-flex align-items-center">
-                            <button class="btn btn-outline-secondary me-2"><i class="fas fa-refresh"></i></button>
                             <input type="text" class="form-control" name="search" placeholder="Search...">
                         </div>
                         </form>
@@ -230,20 +228,42 @@
                         </div>
                     </div>
 
-                    <!-- Pagination -->
-                    <nav aria-label="Category list navigation">
+                        <!-- Pagination -->
+                    <nav aria-label="Page navigation">
                         <ul class="pagination">
-                            <li class="page-item disabled">
-                                <a class="page-link" href="#" tabindex="-1" aria-disabled="true">Previous</a>
-                            </li>
-                            <li class="page-item active" aria-current="page">
-                                <a class="page-link" href="#">1 <span class="visually-hidden">(current)</span></a>
-                            </li>
-                            <li class="page-item"><a class="page-link" href="#">2</a></li>
-                            <li class="page-item"><a class="page-link" href="#">3</a></li>
+                            {% if categories.has_previous %}
                             <li class="page-item">
-                                <a class="page-link" href="#">Next</a>
+                                <a class="page-link" href="?search={{ search_query }}&page=1" aria-label="First">
+                                    <span aria-hidden="true">&laquo;&laquo;</span>
+                                </a>
                             </li>
+                            <li class="page-item">
+                                <a class="page-link" href="?search={{ search_query }}&page={{ categories.previous_page_number }}" aria-label="Previous">
+                                    <span aria-hidden="true">&laquo;</span>
+                                </a>
+                            </li>
+                            {% endif %}
+
+                            {% for i in categories.paginator.page_range %}
+                            {% if categories.number == i %}
+                            <li class="page-item active"><span class="page-link">{{ i }}</span></li>
+                            {% elif i > categories.number|add:'-3' and i < categories.number|add:'3' %}
+                            <li class="page-item"><a class="page-link" href="?search={{ search_query }}&page={{ i }}">{{ i }}</a></li>
+                            {% endif %}
+                            {% endfor %}
+
+                            {% if categories.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="?search={{ search_query }}&page={{ categories.next_page_number }}" aria-label="Next">
+                                    <span aria-hidden="true">&raquo;</span>
+                                </a>
+                            </li>
+                            <li class="page-item">
+                                <a class="page-link" href="?search={{ search_query }}&page={{ categories.paginator.num_pages }}" aria-label="Last">
+                                    <span aria-hidden="true">&raquo;&raquo;</span>
+                                </a>
+                            </li>
+                            {% endif %}
                         </ul>
                     </nav>
 

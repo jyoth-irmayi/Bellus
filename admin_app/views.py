@@ -15,6 +15,9 @@ from django.views.decorators.cache import cache_control
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q
 from util.decorator import admin_required
+from django.utils import timezone 
+from datetime import datetime
+
 
 
 
@@ -59,7 +62,54 @@ def admin_logout(request):
 def admin_dashboard(request):
     if not request.user.is_authenticated or not request.user.is_superuser:
         return redirect('admin_login')
-    return render(request, 'admin_dashboard.html')
+     # Get current time
+    now = datetime.now() # Here, datetime is assigned to a variable, so it's no longer a function.
+    today = now
+    start_of_month = today.replace(day=1)
+    start_of_year = today.replace(month=1, day=1)
+
+    # Orders by time period
+    daily_orders = Order.objects.filter(order_date__date=today.date()).count()
+    monthly_orders = Order.objects.filter(order_date__gte=start_of_month).count()
+    yearly_orders = Order.objects.filter(order_date__gte=start_of_year).count()
+
+    # Revenue calculations
+    daily_revenue = Order.objects.filter(order_date__date=today.date()).aggregate(Sum('total_amount'))['total_amount__sum'] or 0
+    monthly_revenue = Order.objects.filter(order_date__gte=start_of_month).aggregate(Sum('total_amount'))['total_amount__sum'] or 0
+    yearly_revenue = Order.objects.filter(order_date__gte=start_of_year).aggregate(Sum('total_amount'))['total_amount__sum'] or 0
+
+    # Best-selling products
+    best_selling_products = (
+        Variant.objects.values('product__product_name')
+        .annotate(total_quantity=Sum('order_items__quantity'))
+        .order_by('-total_quantity')[:5]
+    )
+
+    # Best-selling categories
+    best_selling_categories = (
+        categorys.objects.annotate(total_sales=Sum('product__variants__order_items__quantity'))
+        .order_by('-total_sales')[:5]
+    )
+
+    # Best-selling brands
+    best_selling_brands = (
+        Product.objects.values('brand')
+        .annotate(total_sales=Sum('variants__order_items__quantity'))
+        .order_by('-total_sales')[:5]
+    )
+
+    context = {
+        'daily_orders': daily_orders,
+        'monthly_orders': monthly_orders,
+        'yearly_orders': yearly_orders,
+        'daily_revenue': daily_revenue,
+        'monthly_revenue': monthly_revenue,
+        'yearly_revenue': yearly_revenue,
+        'best_selling_products': best_selling_products,
+        'best_selling_categories': best_selling_categories,
+        'best_selling_brands': best_selling_brands,
+    }
+    return render(request, 'admin_dashboard.html',context)
 
 
 
@@ -88,7 +138,18 @@ def customer_search(request):
     else:
         users = UserDetails.objects.all()  
 
-    return render(request, 'admin_customer.html', {'users': users})
+    # Implement pagination
+    paginator = Paginator(users, 5)  # Show 10 users per page
+    page_number = request.GET.get('page')  # Get the current page number from the request
+
+    try:
+        page_obj = paginator.page(page_number)  # Get the page object for the current page
+    except PageNotAnInteger:
+        page_obj = paginator.page(1)  # Default to the first page if the page number is invalid
+    except EmptyPage:
+        page_obj = paginator.page(paginator.num_pages)
+
+    return render(request, 'admin_customer.html', {'page_obj': page_obj})
 
 
 @login_required
@@ -96,16 +157,35 @@ def customer_search(request):
 @cache_control(no_cache=True, no_store=True, must_revalidate=True)
 def admin_category(request):
      if request.method == 'POST':
-        name = request.POST.get('categoryName')
+        name = request.POST.get('categoryName',"").strip()
         status = request.POST.get('status') == 'on'
+        if not name:
+            messages.error(request, "Category name cannot be empty.")
+            return redirect('admin_category')
+        if not all(x.isalpha() or x.isspace() for x in name):
+            messages.error(request, "Category name can only contain letters and spaces.")
+            return redirect('admin_category')
+        if len(name) < 3:
+            messages.error(request, "Category name must be at least 3 characters long.")
+            return redirect('admin_category')
+
         if categorys.objects.filter(name__iexact=name, is_delete=False).exists():
             messages.error(request, "Category already exists.")
-        else:
-           
-            categorys.objects.create(name=name, is_active=status)
-            messages.success(request, "Category added successfully.")
-            return redirect('admin_category')  
-     categories = categorys.objects.filter(is_delete=False)  
+        
+    
+        categorys.objects.create(name=name, is_active=status)
+        messages.success(request, "Category added successfully.")
+        return redirect('admin_category')  
+     # Handle search functionality
+     search_query = request.GET.get('search', '')
+     if search_query:
+        categories = categorys.objects.filter(name__icontains=search_query, is_delete=False)
+     else:
+        categories = categorys.objects.filter(is_delete=False)
+     # Pagination setup
+     paginator = Paginator(categories, 5)  # 5 categories per page
+     page_number = request.GET.get('page')  # Get the current page number from the request
+     categories = paginator.get_page(page_number)   
      return render(request, 'admin_category.html', {'categories': categories})
 
 
@@ -127,20 +207,27 @@ def admin_editcategory(request, id):
 
     if request.method == 'POST':
         # Get the updated data from the POST request
-        category_name = request.POST.get('categoryName')
+        category_name = request.POST.get('categoryName',"").strip()
         status = request.POST.get('status') == 'on'  # Checkbox returns 'on' if checked
+        if not category_name:
+            messages.error(request, "Category name cannot be empty.")
+            return redirect('admin_editcategory', id=id)
+
+        if not category_name.isalpha():
+            messages.error(request, "Category name can only contain letters and must not contain spaces.")
+            return redirect('admin_editcategory', id=id)
+
+        if len(category_name) < 3:
+            messages.error(request, "Category name must be at least 3 characters long.")
+            return redirect('admin_editcategory', id=id)
 
         if categorys.objects.filter(name__iexact=category_name, is_delete=False).exclude(id=id).exists():
             messages.error(request, "Category already exists.")
 
-        else:
-       
-            category.name = category_name
-            category.is_active = status
-            category.save()  # Save changes to the database
-            messages.success(request, "Category updated successfully")
-
-      
+        category.name = category_name
+        category.is_active = status
+        category.save()  # Save changes to the database
+        messages.success(request, "Category updated successfully")
         return redirect('admin_category')
 
    
@@ -274,7 +361,18 @@ def admin_product(request):
             "image": first_image.image.url if first_image else None,
             "firstSize":firstSize,
         })
-     return render(request, 'admin_product.html', {"products_with_details":products_with_details})
+        # Implement pagination
+     paginator = Paginator(products_with_details, 10)  # 10 items per page
+     page_number = request.GET.get('page')  # Get the current page number from the request
+
+     try:
+        page_obj = paginator.page(page_number)  # Get the page object for the current page
+     except PageNotAnInteger:
+        page_obj = paginator.page(1)  # Default to the first page if the page number is invalid
+     except EmptyPage:
+        page_obj = paginator.page(paginator.num_pages)
+
+     return render(request, 'admin_product.html', {"page_obj": page_obj})
 
 def product_search(request):
     search_query = request.GET.get('search', '')
@@ -318,7 +416,18 @@ def admin_editproduct(request, product_id):
     product = get_object_or_404(Product, product_id=product_id)
     categories = categorys.objects.all()
     variants = product.variants.all()
-    total_quantity = sum(variant.stock for variant in variants)
+     # Fetch available sizes for all variants
+    available_sizes = VariantSize.objects.filter(variant__product=product).values_list('size', flat=True).distinct()
+    
+    # Prepare variant size and stock data
+    variant_stock_data = {}
+    for variant in variants:
+        variant_sizes = VariantSize.objects.filter(variant=variant)
+        variant_stock_data[variant.id] = {
+            size_info.size: size_info.quantity for size_info in variant_sizes
+        }
+
+    total_quantity = VariantSize.objects.filter(variant__product=product).aggregate(total_stock=Sum('quantity'))['total_stock'] or 0
 
     if request.method == "POST":
         # Update product details
@@ -388,17 +497,33 @@ def admin_editproduct(request, product_id):
                 variant.images.all().delete()  # Delete associated images
                 variant.delete()
 
-        # Update existing variants
+        # Update existing variants and their sizes
         for variant in variants:
-            size = request.POST.get(f"variant_{variant.id}_size")
+            # Update variant fields
             color = request.POST.get(f"variant_{variant.id}_color")
             price = request.POST.get(f"variant_{variant.id}_price")
-            stock = request.POST.get(f"variant_{variant.id}_stock")
-            variant.size = size
             variant.color = color
-            variant.price = price
-            variant.stock = stock
+            variant.actual_price = price
             variant.save()
+
+            # Handle sizes for the variant
+            size_keys = [key for key in request.POST.keys() if key.startswith(f"variant_{variant.id}_size_")]
+            for size_key in size_keys:
+                size_index = size_key.split('_')[-1]  # Extract the index
+                size_value = request.POST.get(size_key)
+                stock_key = f"variant_{variant.id}_stock_{size_index}"
+                stock_value = request.POST.get(stock_key)
+
+                if size_value and stock_value:  # Ensure size and stock are provided
+                    stock_value = int(stock_value)
+
+                    # Check if the size already exists for this variant
+                    size_instance, created = VariantSize.objects.get_or_create(
+                        variant=variant,
+                        size=size_value
+                    )
+                    size_instance.quantity = stock_value
+                    size_instance.save()
 
             # Update existing variant images
             existing_image_ids = request.POST.getlist(f"variant_{variant.id}_existing_images")
@@ -411,59 +536,73 @@ def admin_editproduct(request, product_id):
             for image_file in variant_images:
                 VariantImage.objects.create(variant=variant, image=image_file)
 
+        # Add new sizes and quantities for existing variants
+        for variant in variants:
+            # Retrieve new size and stock data for this variant
+            new_sizes = request.POST.getlist(f"variant_{variant.id}_new_size[]")
+            new_quantities = request.POST.getlist(f"variant_{variant.id}_new_quantity[]")
 
-        # Add new variants
-        new_sizes = request.POST.getlist("new_variant_size[]")
-        new_colors = request.POST.getlist("new_variant_color[]")
-        new_stocks = request.POST.getlist("new_variant_stock[]")
-        new_prices = request.POST.getlist("new_variant_price[]")
+            for size, quantity in zip(new_sizes, new_quantities):
+                if size and quantity:
+                    quantity = int(quantity)  # Ensure quantity is an integer
 
-        for i in range(len(new_sizes)):
-            new_variant = Variant.objects.create(
-                product=product,
-                size=new_sizes[i],
-                color=new_colors[i],
-                stock=new_stocks[i],
-                price=new_prices[i],
-            )
-            # Dynamically access the corresponding file input for this variant
-            image_field_name = f"new_variant_images_{i}[]"
-            variant_image_files = request.FILES.getlist(image_field_name)
+                    # Create a new size entry for this variant
+                    VariantSize.objects.create(
+                        variant=variant,
+                        size=size,
+                        quantity=quantity
+                    )
 
+        # # Add new variants
+        variants_data = {}
+        for key in request.POST:
+            if key.startswith("variants["):
+                match = re.match(r"variants\[(\d+)]\[(.+)]", key)
+                if match:
+                    variant_id, field_name = match.groups()
+                    if variant_id not in variants_data:
+                        variants_data[variant_id] = {}
+                    if field_name == "sizes[]":
+                        variants_data[variant_id].setdefault("sizes", []).extend(request.POST.getlist(key))
+                    elif "stocks" in field_name:
+                        size = field_name.split("[")[1].rstrip("]")
+                        variants_data[variant_id].setdefault("stocks", {})[size] = int(request.POST[key])
+                    else:
+                        variants_data[variant_id][field_name] = request.POST[key]
 
-            if not variant_image_files:
-                messages.error(request, f"No images uploaded for variant {new_sizes[i]} ({new_colors[i]}).")
-                continue  # Skip to the next variant
+        # Process each variant
+        for variant_id, fields in variants_data.items():
+            print(f"Debug: Processing variant {variant_id} - {fields}")
+            color = fields.get("color")
+            variant_price = fields.get("price")
+            sizes = fields.get("sizes][", [])
+            stocks = fields.get("stocks", {})
+            print(size)
+            print(stocks)
 
-            # Save each image for this variant
-            for index, image_file in enumerate(variant_image_files):
-                # Upload the image to Cloudinary
-                cloudinary_response = cloudinary.uploader.upload(
-                    image_file,
-                    folder=f"product_images/{product.id}/variants/{new_variant.id}/",
-                    public_id=f"{new_variant.id:03d}_{index + 1:03d}",
-                    overwrite=False,
-                    format="webp",
-                    quality=85
-                )
-                cloudinary_url = cloudinary_response['secure_url']
+            # Create variant
+            variant = Variant(product=product, color=color, actual_price=float(variant_price))
+            variant.save()
 
-                    # Save the image URL to VariantImage model
-                VariantImage.objects.create(variant=new_variant, image=cloudinary_url)
+            # Create sizes and stocks
+            for size ,stock  in stocks.items():
+                variant_size = VariantSize(variant=variant, size=size, quantity=stock)
+                variant_size.save()
 
-        # Handle variant deletion
-        variants_to_delete = request.POST.getlist("delete_variants[]")  # Get the IDs of variants to delete
-        for variant_id in variants_to_delete:
-            variant = Variant.objects.filter(id=variant_id, product=product).first()  # Find the variant
-            if variant:
-                variant.images.all().delete()  # Delete associated images
-                variant.delete()  # Delete the variant
+            # Upload images
+            images = request.FILES.getlist(f"variants[{variant_id}][images][]")
+            for image in images:
+                cloudinary_response = cloudinary.uploader.upload(image)
+                VariantImage.objects.create(variant=variant, image=cloudinary_response['secure_url'])
 
+        messages.success(request, "Product and variants added successfully.")
+        
     return render(request, "admin_editproduct.html", {
         "product": product,
         "categories": categories,
         "total_quantity": total_quantity,
         "variants": variants,
+        "variant_stock_data": variant_stock_data,
     })
 
 
@@ -620,17 +759,25 @@ def admin_editproduct(request, product_id):
 
 
 
-
+@login_required
+@admin_required
+@cache_control(no_cache=True, no_store=True, must_revalidate=True)
 def admin_deleteproduct(request,id):
     product = get_object_or_404(Product, id=id)
     product.is_delete = True  # Mark as deleted
     product.save()
     return redirect('admin_product')
 
-
+@login_required
+@admin_required
+@cache_control(no_cache=True, no_store=True, must_revalidate=True)
 def admin_order(requst):
     """Fetch and list all orders in the admin view."""
-    orders = Order.objects.prefetch_related('order_items__variant__product', 'user', 'address').all()
+    orders_list = Order.objects.prefetch_related('order_items__variant__product', 'user', 'address').all().order_by('-order_date')
+    # Pagination setup: 5 orders per page
+    paginator = Paginator(orders_list, 5)  # Change 5 to the number of items per page you want
+    page_number = requst.GET.get('page')  # Get the current page number from the request
+    orders = paginator.get_page(page_number)
 
     # order_data = []
     # for order in orders:
@@ -657,6 +804,10 @@ from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.shortcuts import get_object_or_404
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 
+
+@login_required
+@admin_required
+@cache_control(no_cache=True, no_store=True, must_revalidate=True)
 def view_admin_order(request, order_id):
     """View and update statuses for individual items in an order."""
     order = get_object_or_404(Order, id=order_id)
@@ -699,6 +850,9 @@ def view_admin_order(request, order_id):
     return render(request, 'week2/view_admin_order.html', context)
 
 
+@login_required
+@admin_required
+@cache_control(no_cache=True, no_store=True, must_revalidate=True)
 def update_order_status(request, order_id):
     order = get_object_or_404(Order, id=order_id)
 
@@ -713,17 +867,73 @@ def update_order_status(request, order_id):
 
     return redirect('view_admin_order', order_id=order.id)
 
+@login_required
+@admin_required
+@cache_control(no_cache=True, no_store=True, must_revalidate=True)
 def admin_coupon(request):
     if request.method == 'POST':
         # Get data from POST request
         coupon_name = request.POST.get('couponName')
-        coupon_code = request.POST.get('couponCode')
         coupon_condition = request.POST.get('couponCondition')
         offer_rate = request.POST.get('offerRate')
         coupon_validity = request.POST.get('couponValidity')
         discount_type = request.POST.get('discountType')
         discount_value = request.POST.get('discountValue')
         max_uses = request.POST.get('maxUses')
+
+
+        errors = {}
+
+        # Validate coupon name
+        if not coupon_name or len(coupon_name.strip()) == 0:
+            errors['couponName'] = "Coupon name is required."
+
+        # Validate coupon condition
+        if not coupon_condition or len(coupon_condition.strip()) == 0:
+            errors['couponCondition'] = "Coupon condition is required."
+
+        # Validate offer rate
+        try:
+            offer_rate = float(offer_rate) if offer_rate else 0.0
+            if offer_rate < 0:
+                errors['offerRate'] = "Offer rate cannot be negative."
+        except (ValueError, TypeError):
+            errors['offerRate'] = "Invalid offer rate."
+
+        # Validate coupon validity
+        try:
+            validity_date = datetime.strptime(coupon_validity, "%Y-%m-%d").date()
+            if validity_date < datetime.today().date():
+                errors['couponValidity'] = "Validity date cannot be in the past."
+        except (ValueError, TypeError):
+            errors['couponValidity'] = "Invalid date format."
+
+        # Validate discount value
+        try:
+            discount_value = float(discount_value) if discount_value else 0.0
+            if discount_value < 0:
+                errors['discountValue'] = "Discount value cannot be negative."
+        except (ValueError, TypeError):
+            errors['discountValue'] = "Invalid discount value."
+
+        # Validate max uses
+        try:
+            max_uses = int(max_uses)
+            if max_uses <= 0:
+                errors['maxUses'] = "Maximum uses must be greater than 0."
+        except (ValueError, TypeError):
+            errors['maxUses'] = "Invalid maximum uses value."
+
+        # Ensure at least one of `discount_value` or `offer_rate` is non-zero
+        if discount_value == 0.0 and offer_rate == 0.0:
+            errors['discount'] = "Either discount value or offer rate must be greater than 0."
+
+        if errors:
+            return render(request, 'week3/admin_coupon.html', {
+                'coupons': Coupon.objects.all(),
+                'errors': errors,
+                'old_data': request.POST,  # Pass old form data to retain values
+            })
 
         # Ensure offer_rate is converted to a decimal
         try:
@@ -740,12 +950,12 @@ def admin_coupon(request):
         # Save coupon to the database
         coupon = Coupon(
             name=coupon_name,
-            code=coupon_code,
             condition=coupon_condition,
             offer_rate=offer_rate,
             validity_date=coupon_validity,
             discount_value=discount_value,
-            max_uses=max_uses
+            max_uses=max_uses,
+            discount_type=discount_type
         )
         coupon.save()
 
@@ -756,13 +966,15 @@ def admin_coupon(request):
     context = {'coupons': Coupon.objects.all()}
     return render(request, 'week3/admin_coupon.html', context)
 
+@login_required
+@admin_required
+@cache_control(no_cache=True, no_store=True, must_revalidate=True)
 def admin_edit_coupon(request,id):
     coupon = get_object_or_404(Coupon, id=id)
 
     if request.method == 'POST':
         # Get data from the form
         coupon.name = request.POST.get('couponName')
-        coupon.code = request.POST.get('couponCode')
         coupon.condition = request.POST.get('couponCondition')
         coupon.offer_rate = request.POST.get('offerRate')
         coupon.discount_type = request.POST.get('discountType')
@@ -780,6 +992,9 @@ def admin_edit_coupon(request,id):
 
 
 
+@login_required
+@admin_required
+@cache_control(no_cache=True, no_store=True, must_revalidate=True)
 def admin_delete_coupon(request, id):
     if request.method == 'POST':
         # Fetch the coupon by ID
@@ -797,8 +1012,11 @@ from datetime import datetime
 import logging
 from datetime import date
 
-logger = logging.getLogger(__name__)
 
+logger = logging.getLogger(__name__)
+@login_required
+@admin_required
+@cache_control(no_cache=True, no_store=True, must_revalidate=True)
 def salesreport(request):
     """
     Fetch data for the sales report page and render the template.
@@ -843,6 +1061,9 @@ from django.db.models import Sum, Count, F, Case, When, IntegerField
 from django.db.models.functions import TruncDay, TruncMonth, TruncYear
 from django.db.models import Prefetch
 from .models import Order, OrderItem, Product
+@login_required
+@admin_required
+@cache_control(no_cache=True, no_store=True, must_revalidate=True)
 def sales_report_data(request):
     # Get filter parameters from the GET request
     start_date = request.GET.get('start_date')
@@ -935,7 +1156,9 @@ from reportlab.lib import colors
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle
 from django.http import HttpResponse
 from .models import Order, OrderItem
-
+@login_required
+@admin_required
+@cache_control(no_cache=True, no_store=True, must_revalidate=True)
 def export_sales_report(request):
     # Retrieve filter parameters from the GET request
     start_date = request.GET.get('start_date')
@@ -1015,7 +1238,9 @@ def export_sales_report(request):
 import pandas as pd
 from django.http import HttpResponse
 from .models import Order, OrderItem, Variant, Product  # Import your models
-
+@login_required
+@admin_required
+@cache_control(no_cache=True, no_store=True, must_revalidate=True)
 def export_sales_report_excel(request):
     # Fetch the data
     orders = Order.objects.all()

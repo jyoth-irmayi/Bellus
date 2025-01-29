@@ -32,17 +32,17 @@ urlpatterns = [
     path('order-item/<int:item_id>/return/', views.return_order_item, name='return_order_item'),
     # path('order_item/<int:order_id>/', views.order_item, name='order_it')
     path('wishlist/', views.wishlist_view, name='wishlist'),
-    path('wishlist/add/<int:id>/', views.add_to_wishlist, name='add_to_wishlist'),
-    path('wishlist/remove/<int:id>/' ,views.remove_from_wishlist, name='remove_from_wishlist'),
+    path('wishlist/add/<variant_id>/', views.add_to_wishlist, name='add_to_wishlist'),
+    path('wishlist/remove/<variant_id>/' ,views.remove_from_wishlist, name='remove_from_wishlist'),
     path('apply-coupon/', views.apply_coupon, name='apply_coupon'),
     # path('payment/', views.payment_view, name='payment'),
-    path('payment/success/', views.payment_success, name='payment_success'),
+    # path('payment/success/', views.payment_success, name='payment_success'),
+    path('order-failure/', views.order_failure, name='order_failure'),
     path('wallet/', views.wallet_view, name='user_wallet'),
     path('razorpay/payment/success/', views.razorpay_callback, name='razorpay_payment_success'),
     path('wallet/add/', views.add_to_wallet, name='add_to_wallet'),
     path('order-item/<int:order_item_id>/pay-with-wallet/', views.use_wallet_balance, name='pay_with_wallet'),
     path('process-wallet-payment/', views.process_wallet_payment, name='process_wallet_payment'),
     path('place-order/', views.place_order, name='place_order'),
-
-
+    path('order/<int:order_id>/invoice/', views.generate_invoice, name='generate_invoice'),
 ]

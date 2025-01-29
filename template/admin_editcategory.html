@@ -67,7 +67,7 @@
 
         /* Style for error messages */
         .message.error {
-            color: #721c24;
+            color: #e01025;
             padding: 10px;
             margin: 10px 0;
             border-radius: 5px;
@@ -171,34 +171,30 @@
                     <a class="nav-link" href="{% url 'admin_category' %}"><i class="fas fa-tags me-2"></i> Category</a>
                     <a class="nav-link" href="{% url 'admin_coupon' %}"><i class="fas fa-box me-2"></i> Coupon</a>
                     <a class="nav-link" href="{% url 'salesreport' %}"><i class="fas fa-chart-bar me-2"></i> Sales Report</a>
-                    <a class="nav-link" href="#"><i class="fas fa-image me-2"></i> Banner Manage</a>
                 </nav>
             </div>
 
             <!-- Main Content -->
             <div class="col-md-10 p-4">
                 <h4 class="mb-4">Category Management</h4>
-
-
-
                     <!-- Add New Category -->
                     <div class="add-category-form">
+                        
                         <h5 class="mb-4">Edit Category</h5>
                         <form id="addCategoryForm" method="post" action="{% url 'admin_editcategory' id=category.id %}">
                             {% csrf_token %}
                             <div class="d-flex">
                                 <div class="flex-grow-1">
-                                    {% if messages %}
-                                        {% for message in messages %}
-                                        <div class="message {{ message.tags }}">{{ message }}</div>
-
-                                            </div>
-                                        {% endfor %}
-                                    {% endif %}
                                     <div class="mb-3">
                                         <label for="categoryName" class="form-label">Name:</label>
                                         <input type="text" class="form-control" id="categoryName" name="categoryName" value="{{ category.name }}" required>
                                     </div>
+                                    {% if messages %}
+                            {% for message in messages %}
+                            <p class="message {{ message.tags }}">{{ message }}</p>
+
+                            {% endfor %}
+                        {% endif %}
                                     <div class="form-check form-switch">
                                         <input class="form-check-input" type="checkbox" id="statusSwitch" name="status" {% if category.is_active %}checked{% endif %}>
                                         <label class="form-check-label" for="statusSwitch">List / Unlist</label>
@@ -207,7 +203,7 @@
                                 </div>
                             </div><br>
 
-                            <a href="{% url 'admin_category' %}"><button class="btn1">Back to Categories</button></a>
+                            <a href="{% url 'admin_category' %}" class="btn btn-outline-primary mt-3">Back to Categories</a>
                         </form>
                     </div>
                 </div>
@@ -227,6 +223,30 @@
                 }
                 reader.readAsDataURL(e.target.files[0]);
             }
+        });
+    </script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            {% if messages %}
+            const messages = [
+                {% for message in messages %}
+                {
+                    level: "{{ message.tags }}",
+                    text: "{{ message }}"
+                },
+                {% endfor %}
+            ];
+            messages.forEach(message => {
+                Swal.fire({
+                    toast: true,
+                    position: 'top-right',
+                    icon: message.level === 'success' ? 'success' : 'error',
+                    title: message.text,
+                    showConfirmButton: false,
+                    timer: 3000
+                });
+            });
+            {% endif %}
         });
     </script>
 </body>

@@ -193,96 +193,95 @@ footer {
                     <a class="nav-link" href="{% url 'salesreport' %}"><i class="fas fa-chart-bar me-2"></i> Sales Report</a>
                     <a class="nav-link" href="#"><i class="fas fa-image me-2"></i> Banner Manage</a>                </nav>
             </div>
-    
+
             <!-- Order Details -->
-<div class="col-md-10">
-    <h1 class="mb-4">Order Details</h1>
-    <div class="card">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <h5 class="mb-0">Order #{{ order.id }}</h5>
-            <span class="order-status text-success">{{ order.status }}</span>
-        </div>
-        <div class="card-body">
-            <div class="row mb-4">
-                <div class="col-md-6">
-                    <h6 class="fw-bold">Customer Information</h6>
-                    <p>Name: {{ customer_name }}</p>
-                    <p>Email: {{ customer_email }}</p>
-                    <p>Phone: {{ customer_phone }}</p>
+            <div class="col-md-10">
+            <h1 class="mb-4">Order Details</h1>
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Order #{{ order.id }}</h5>
+                    <span class="order-status text-success">{{ order.status }}</span>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <h6 class="fw-bold">Customer Information</h6>
+                            <p>Name: {{ customer_name }}</p>
+                            <p>Email: {{ customer_email }}</p>
+                            <p>Phone: {{ customer_phone }}</p>
+                        </div>
+                    </div>
+                    <h6 class="fw-bold mb-3">Order Items</h6>
+                    <form method="POST" action="{% url 'view_admin_order' order.id %}">
+                        {% csrf_token %}
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Product</th>
+                                    <th>Price</th>
+                                    <th>Quantity</th>
+                                    <th>Total</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in paginated_order_items %}
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                        
+                                            {% if item.variant_images %}
+                                                <img style="width: 100px;height: 100px;" src="{{ item.variant_images.first.image.url }}" alt="{{ item.variant.product.product_name }}">
+                                            {% else %}
+                                                <p>No image available</p>
+                                            {% endif %}                          
+                                            <div class="p-3">
+                                                <h6 class="mb-0">{{ item.variant.product.product_name }}</h6>
+                                                <small class="text-muted">SKU: {{ item.variant.product.product_id }}</small>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>₹{{ item.price }}</td>
+                                    <td>{{ item.quantity }}</td>
+                                    <td>₹{{ item.price }}</td>
+                                    <td>
+                                        <select name="order_status_{{ item.id }}" class="form-control">
+                                            {% for key, value in item.ORDER_STATUS_CHOICES %}
+                                            <option value="{{ key }}" {% if item.status == key %}selected{% endif %}>{{ value }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                        <button type="submit" class="btn btn-success mt-3">Update Status</button>
+                    </form>
+                </div>
+                <div class="card-footer">
+                    <h6 class="fw-bold mb-3">Order Timeline</h6>
+                    <ul class="list-group">
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>Order Placed</strong>
+                                <p class="mb-0 text-muted">{{ order_time }}</p>
+                            </div>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>Delivered</strong>
+                                <p class="mb-0 text-muted">{{ delivery_date }}</p>
+                            </div>
+                        </li>
+                    </ul>
+                    
+                </div>
+                <div class="mt-4">
+                    <a href="{% url 'admin_order' %}" class="btn btn-secondary me-2">Back to Order List</a>
+                    <a href="#" class="btn btn-primary">Print Order</a>
                 </div>
             </div>
-            <h6 class="fw-bold mb-3">Order Items</h6>
-            <form method="POST" action="{% url 'view_admin_order' order.id %}">
-                {% csrf_token %}
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th>Product</th>
-                            <th>Price</th>
-                            <th>Quantity</th>
-                            <th>Total</th>
-                            <th>Status</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for item in paginated_order_items %}
-                        <tr>
-                            <td>
-                                <div class="d-flex align-items-center">
-                                
-                                    {% if item.variant_images %}
-                                        <img style="width: 100px;height: 100px;" src="{{ item.variant_images.first.image.url }}" alt="{{ item.variant.product.product_name }}">
-                                    {% else %}
-                                        <p>No image available</p>
-                                    {% endif %}                          
-                                    <div class="p-3">
-                                        <h6 class="mb-0">{{ item.variant.product.product_name }}</h6>
-                                        <small class="text-muted">SKU: {{ item.variant.product.product_id }}</small>
-                                    </div>
-                                </div>
-                            </td>
-                            <td>${{ item.price }}</td>
-                            <td>{{ item.quantity }}</td>
-                            <td>${{ item.price }}</td>
-                            <td>
-                                <select name="order_status_{{ item.id }}" class="form-control">
-                                    {% for key, value in item.ORDER_STATUS_CHOICES %}
-                                    <option value="{{ key }}" {% if item.status == key %}selected{% endif %}>{{ value }}</option>
-                                    {% endfor %}
-                                </select>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-                <button type="submit" class="btn btn-success mt-3">Update Status</button>
-            </form>
-        </div>
-        <div class="card-footer">
-            <h6 class="fw-bold mb-3">Order Timeline</h6>
-            <ul class="list-group">
-                <li class="list-group-item d-flex justify-content-between align-items-center">
-                    <div>
-                        <strong>Order Placed</strong>
-                        <p class="mb-0 text-muted">{{ order_time }}</p>
-                    </div>
-                </li>
-                <li class="list-group-item d-flex justify-content-between align-items-center">
-                    <div>
-                        <strong>Delivered</strong>
-                        <p class="mb-0 text-muted">{{ delivery_date }}</p>
-                    </div>
-                </li>
-            </ul>
-        </div>
-        <div class="mt-4">
-            <a href="{% url 'admin_order' %}" class="btn btn-secondary me-2">Back to Order List</a>
-            <a href="#" class="btn btn-primary">Print Order</a>
-        </div>
-    </div>
-</div>
-
-    
+            </div>
 
 
     <footer class="footer py-4">

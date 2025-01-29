@@ -5,247 +5,173 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Product Detail</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
-
-
-
+    <title>Product Detail - Bellus</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-
-:root {
+        :root {
             --primary-color: #2c614f;
             --secondary-color: #f0f7f4;
             --accent-color: #d4a373;
             --text-color: #333333;
-        }        
-.product-image {
-    border: 1px solid #ddd;
-    padding: 10px;
-    text-align: center;
-}
-.popup {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent background */
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: 1000; /* Ensure it appears on top */
-    }
-    
-.message.success {
-    color: #155724;
-    padding: 10px;
-    margin: 10px 0;
-    border-radius: 5px;
-}
-
-/* Style for error messages */
-.message.error {
-    color: red;
-    padding: 10px;
-    margin: 10px 0;
-    border-radius: 5px;
-}
-
-.thumbnail-image img {
-    cursor: pointer;
-    transition: transform 0.2s ease-in-out;
-}
-.navbar{
-    color: #2c614f;
-}
-.navbar-brand {
-    font-size: 2rem;
-    color: var(--primary-color) !important;
-}
-.nav-link {
-    color:#2c614f;
-    padding: 0.75rem 1rem;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-.nav-item {
-    color: #2c614f;
-    padding: 0.8rem 1rem;
-}
-.thumbnail-image img:hover {
-    transform: scale(1.1);
-}
-.heading{
-    text-align: center;
-}
-
-.star-rating .fas,
-.star-rating .far {
-    color: #f8d64e;
-    margin-right: 5px;
-}
-.re-product{
-    width: 100px;
-    height: 100px;
-    margin-left: 10px;
-    margin-top: 10px;
-    border-radius: 7px;
-}
-.size-box {
-        width:30px ;
-        padding: 2px;
-        border: 1px solid #ccc;
-        border-radius: 5px;
-        cursor: pointer;
-        text-align: center;
-    }
-    .size-box.selected {
-        background-color: #007bff;
-        color: white;
-        border-color: #0056b3;
-    }
-    .size-box.out-of-stock {
-        background-color: #f8d7da;
-        color: #721c24;
-        cursor: not-allowed;
-    }
-    .size-box:hover:not(.out-of-stock) {
-        background-color: #f0f0f0;
-    }
-
-
-.add-review textarea {
-    resize: none;
-}
-.review{
-    color: rgb(96, 45, 45);
-}
-
-
-.related-products .card img {
-    max-height: 150px;
-    object-fit: cover;
-}
-footer {
-    background-color: var(--primary-color);
-    color: white;
-    padding: 2rem 0;
-}
-
-.container-footer {
-    background-color: #2c614f;
-    color: white;
-}
-footer {
-    background-color: var(--primary-color);
-    color: white;
-}
-.footer h5 {
-    font-weight: bold;
-    margin-bottom: 1rem;
-}
-
-.footer ul {
-    padding: 0;
-    list-style: none;
-}
-
-.footer ul li a {
-    text-decoration: none;
-    color: white;
-}
-
-.footer ul li a:hover {
-    text-decoration: underline;
-}
-
-.footer p {
-    margin: 0;
-    font-size: 0.9rem;
-}
-
-.breadcrumb {
-    background: transparent;
-    padding: 0;
-    margin-bottom: 1.5rem;
-}
-.breadcrumb-item a {
-    color: #6c757d;
-    text-decoration: none;
-}
-.breadcrumb-item.active {
-    color: #333;
-}
-.breadcrumb-item + .breadcrumb-item::before {
-    content: ">";
-}
-.product-image-container {
-    position: relative;
-}
-
-#zoom-lens {
-    background-color: rgba(255, 255, 255, 0.4);
-    border: 2px solid #ccc;
-    cursor: move;
-}
-
-#zoom-box {
-    border: 1px solid #aaa;
-    background-color: #fff;
-}
-.product-container {
-            position: relative;
-            width: 100%;
         }
+        
+        body {
+            font-family: 'Arial', sans-serif;
+            color: var(--text-color);
+            padding-top: 76px;
+        }
+
+        .navbar {
+            background-color: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,.1);
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1030;
+        }
+
+        .navbar-brand {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--primary-color) !important;
+        }
+
+        .nav-link {
+            color: var(--primary-color) !important;
+            font-weight: 500;
+            transition: color 0.3s ease;
+        }
+
+        .nav-link:hover {
+            color: var(--accent-color) !important;
+        }
+
+        .btn-outline-primary {
+            color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+
+        .btn-outline-primary:hover {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .product-container {
+            position: relative;
+        }
+
+        .product-image-container {
+            position: relative;
+            overflow: hidden;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .product-image-container img {
+            transition: transform 0.3s ease;
+        }
+
+        .product-image-container:hover img {
+            transform: scale(1.05);
+        }
+
         .wishlist-btn {
             position: absolute;
             top: 10px;
-            left: 10px;
-            z-index: 1000;
-            font-size: 1.5rem;
-            color: #ff6f61;
-            text-decoration: none;
-            transition: color 0.3s ease;
-            background-color: rgba(255, 255, 255, 0.7);
+            right: 10px;
+            z-index: 10;
+            background-color: white;
             border-radius: 50%;
-            padding: 5px;
+            padding: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            font-size: 1.2rem;
+            color: var(--primary-color);
+            transition: color 0.3s ease;
+        }
+
+        .wishlist-btn:hover {
+            color: var(--accent-color);
+        }
+
+        .thumbnail-image img {
+            border-radius: 4px;
+            transition: opacity 0.3s ease;
+            cursor: pointer;
+        }
+
+        .thumbnail-image img:hover {
+            opacity: 0.7;
+        }
+
+        .size-box {
             width: 40px;
             height: 40px;
             display: flex;
             align-items: center;
             justify-content: center;
-        }
-        .wishlist-btn:hover {
-            color: #ff3e30;
-        }
-        .product-image-container {
-            width: 100%;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s ease;
         }
 
-</style>
-    <link rel="stylesheet" href="{% static 'css/style.css' %}">
-    <!-- Include jQuery -->
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+        .size-box:hover:not(.out-of-stock) {
+            background-color: var(--secondary-color);
+        }
 
-    <!-- Include elevateZoom plugin -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/elevatezoom/3.0.8/jquery.elevateZoom.min.js"></script>
+        .size-box.selected {
+            background-color: var(--primary-color);
+            color: white;
+        }
 
+        .size-box.out-of-stock {
+            background-color: #f8d7da;
+            color: #721c24;
+            cursor: not-allowed;
+        }
+
+        .add-to-cart-btn {
+            background-color: var(--accent-color);
+            border: none;
+            color: white;
+            transition: background-color 0.3s ease;
+        }
+
+        .add-to-cart-btn:hover {
+            background-color: #c39260;
+        }
+
+        .reviews .card {
+            border: none;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .star-rating .fas,
+        .star-rating .far {
+            color: #ffc107;
+        }
+
+        footer {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        @media (max-width: 768px) {
+            .product-image-container {
+                margin-bottom: 2rem;
+            }
+        }
+    </style>
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+    <nav class="navbar navbar-expand-lg navbar-light">
         <div class="container">
             <a class="navbar-brand" href="#">Bellus</a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
             </button>
-
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
                     <li class="nav-item">
@@ -254,19 +180,16 @@ footer {
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'shop' %}">Shop</a>
                     </li>
-                    <!-- <li class="nav-item">
-                        <a class="nav-link" href="#">Collections</a>
-                    </li> -->
                     <li class="nav-item">
                         <a class="nav-link" href="#">About</a>
                     </li>
                 </ul>
-                <form class="d-flex me-3" action="{% url 'shop' %}" method="GET">
+                <form class="d-flex me-3" action="{% url 'shop' %}" method="GET" onsubmit="return validateSearch()">
                     <input class="form-control me-2" type="search" name="search" placeholder="Search products" aria-label="Search">
                     <button class="btn btn-outline-primary" type="submit">
-                        <i class="fas fa-search"></i> <!-- Search Icon -->
+                        <i class="fas fa-search"></i>
                     </button>
-                </form>         
+                </form>
                 <div class="d-flex">
                     <a href="{% url 'cart_view' %}" class="btn btn-outline-primary me-2">
                         <i class="fas fa-shopping-bag"></i>
@@ -278,202 +201,120 @@ footer {
             </div>
         </div>
     </nav>
-    
+
     <div class="container my-5">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'homepage' %}">Home</a></li>
+                <li class="breadcrumb-item"><a href="#">Products</a></li>
+                <li class="breadcrumb-item active" aria-current="page">{{ product.product_name }}</li>
+            </ol>
+        </nav>
+
         <div class="row">
-            <nav aria-label="breadcrumb">
-                <ol class="breadcrumb">
-                    <li class="breadcrumb-item"><a href="{% url 'homepage' %}">Home</a></li>
-                    <li class="breadcrumb-item"><a href="#">Products</a></li>
-                    <li class="breadcrumb-item active" aria-current="page">{{ product.product_name }}</li>
-                </ol>
-            </nav>
-            <!-- Product Images -->
             <div class="col-md-6">
                 <div class="product-container">
-                    <!-- Wishlist button -->
-                    <!-- <div class="wishlist-btn-container">
-                        {% if is_in_wishlist %}
-                            <a href="" class="wishlist-btn">
-                                <i class="fas fa-heart"></i>
-                            </a>
-                        {% else %}
-                            <a href="" class="wishlist-btn">
-                                <i class="far fa-heart"></i>
-                            </a>
+                    <div class="product-image-container">
+                        {% if images %}
+                            <img id="main-image" src="{{ images.0.image.url }}" alt="{{ product.product_name }}" class="img-fluid">
                         {% endif %}
-                    </div> -->
-                <div class="product-image-container">
-                    {% if images %}
-                        <!-- Main product image -->
-                        <img id="main-image" 
-                             src="{{ images.0.image.url }}" 
-                             alt="{{ product.product_name }}" 
-                             class="img-fluid" 
-                             style="width: 100%; height: 100%; object-fit: cover; cursor: crosshair;">
-                
-                        <!-- Zoom lens -->
-                        <div id="zoom-lens" style="
-                            position: absolute;
-                            border: 2px solid #000;
-                            width: 100px;
-                            height: 100px;
-                            display: none;
-                            background: rgba(255, 255, 255, 0.3);
-                        "></div>
-                    {% endif %}
-                
-                    <!-- Zoom box -->
-                    <div id="zoom-box" style="
-                        position: absolute;
-                        top: 0;
-                        left: 520px;
-                        width: 300px;
-                        height: 300px;
-                        overflow: hidden;
-                        border: 1px solid #ccc;
-                        display: none;
-                    ">
-                        <img id="zoomed-image" src="{{ images.0.image.url }}" style="position: absolute;">
+                        <div class="wishlist-btn-container">
+                            {% if selected_variant and selected_variant.id %}
+                                {% if is_in_wishlist %}
+                                    <a href="{% url 'remove_from_wishlist' selected_variant.id %}" class="wishlist-btn">
+                                        <i class="fas fa-heart"></i>
+                                    </a>
+                                {% else %}
+                                    <a href="{% url 'add_to_wishlist' selected_variant.id %}" class="wishlist-btn">
+                                        <i class="far fa-heart"></i>
+                                    </a>
+                                {% endif %}
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="row mt-3">
+                        {% for image in images|slice:":3" %}
+                        <div class="col-4 thumbnail-image">
+                            <img src="{{ image.image.url }}" alt="{{ product.product_name }}" onclick="changeImage(this)" class="img-thumbnail">
+                        </div>
+                        {% endfor %}
                     </div>
                 </div>
-                
-
-                <div class="row">
-                    {% for image in images|slice:":3" %}
-                    <div class="col-4 thumbnail-image">
-                        <img src="{{ image.image.url }}" 
-                             alt="{{ product.product_name }}" 
-                             onclick="changeImage(this)" 
-                             class="img-thumbnail">
-                    </div>
-                    {% endfor %}
-                </div>
-                
             </div>
-            </div>
-
-
-            <!-- Product Details -->
             <div class="col-md-6">
-                <!-- <div>
-                    {% if is_in_wishlist %}
-                    <a href="{% url 'remove_from_wishlist' product.id %}" class="wishlist-btn">
-                        <i class="fa fa-heart" aria-hidden="true"></i>
-                    </a>
-                {% else %}
-                    <a href="{% url 'add_to_wishlist' product.id %}" class="wishlist-btn">
-                        <i class="fa fa-heart-o" aria-hidden="true"></i>
-                    </a>
-                {% endif %}
-                </div> -->
-                <h1 class="display-5">{{ product.product_name }}</h1>
-                <strong>Rs.₹{{ selected_variant_price }}</strong>
-                <span class="text-muted text-decoration-line-through" style="font-size: 0.85em;">Rs. {{ product.price }}</span><br><br>
-                <span class="text-danger fw-bold pt-3">({{ product.discount }} Off)</span>
-                
-                <p class="pt-3">{{ product.description }}</p>
-                
-                
-                <!-- Size Options -->
-                <div class="mb-3 pt-3">
-                    <label for="size" class="form-label">Select Size:</label>
-                    <div class="row">
-                        {% if variants_with_size %}
-                            {% for size in variants_with_size %}
-                                <div class="col-1 mb-2">
-                                    <div class="form-check">
-                                        <!-- Size Box -->
-                                        <div class="size-box 
-                                            {% if size.id == selected_variant.id %}selected{% endif %}
-                                            {% if size.quantity == 0 %}out-of-stock{% endif %}"
-                                            id="size_{{ size.id }}"
-                                            data-size-id="{{ size.id }}"
-                                            {% if size.quantity == 0 %}disabled{% endif %}>
-                                            {{ size.size }}
-                                        </div>
-                                        {% if size.quantity == 0 %}
-                                            <span class="text-muted">(Out of Stock)</span>
-                                        {% endif %}
-                                    </div>
-                                </div>
-                            {% endfor %}
-                        {% else %}
-                            <div class="col-12 text-center">
-                                <p class="text-muted">No sizes available for this product.</p>
+                <h1 class="mb-3">{{ product.product_name }}</h1>
+                <div class="mb-3">
+                    <span class="h3 me-2">₹{{ selected_variant_price }}</span>
+                    <span class="text-muted text-decoration-line-through">₹{{ product.price }}</span>
+                    <span class="text-danger fw-bold">({{ product.discount }} Off)</span>
+                </div>
+                <p class="mb-4">{{ product.description }}</p>
+                <div class="mb-4">
+                    <h5 class="mb-3">Select Size:</h5>
+                    <div class="d-flex flex-wrap gap-2">
+                        {% for size in variants_with_size %}
+                            <div class="size-box {% if size.quantity == 0 %}out-of-stock{% endif %}"
+                                 id="size_{{ size.id }}"
+                                 data-size-id="{{ size.id }}"
+                                 onclick="selectSize({{ size.id }})"
+                                 {% if size.quantity == 0 %}disabled{% endif %}>
+                                {{ size.size }}
                             </div>
-                        {% endif %}
+                        {% endfor %}
                     </div>
                 </div>
-
-                <!-- Add to Cart Button -->
-                <div class="row mt-3">
+                <div class="mb-4">
                     {% if available_sizes|length > 0 %}
-                        <!-- Display Add to Cart Button -->
-                        <div class="col-6" style="width: 160px; background-color: orange; border-radius: 4px; color: white;">
-                            <form id="add-to-cart-form" method="POST" action="{% url 'add_to_cart' product.id %}">
-                                {% csrf_token %}
-                                <input type="hidden" name="variant_id" id="variant_id" value="{{ selected_variant.id }}">
-                                <input type="hidden" id="size_id" name="size_id">
-
-                                <button type="submit" id="add-to-cart-btn" class="btn w-100">Add to Cart</button>
-                            </form>
-                        </div>
+                        <form id="add-to-cart-form" method="POST" action="{% url 'add_to_cart' product.id %}">
+                            {% csrf_token %}
+                            <input type="hidden" name="variant_id" id="variant_id" value="{{ selected_variant.id }}">
+                            <input type="hidden" id="size_id" name="size_id">
+                            <button type="submit" id="add-to-cart-btn" class="btn add-to-cart-btn btn-lg">Add to Cart</button>
+                        </form>
                     {% else %}
-                        <!-- Out of Stock Message -->
-                        <div class="col-12 text-center">
-                            <p class="text-danger fw-bold">All sizes for this product are currently out of stock.</p>
-                        </div>
+                        <p class="text-danger fw-bold">All sizes for this product are currently out of stock.</p>
                     {% endif %}
                 </div>
-
-                
-                <!-- Popup Notification -->
-                <div id="cart-popup" style="display: none; position: fixed; top: 20px; right: 20px; background: #28a745; color: white; padding: 10px; border-radius: 5px; z-index: 1000;">
-                    Product added to cart!
+                <div class="mb-4">
+                    <h5 class="mb-3">Related Variants:</h5>
+                    <div class="row">
+                        {% for item in related_variants %}
+                            <div class="col-3 mb-3">
+                                <a href="{% url 'product_detail' product.id %}?variant_id={{ item.variant.id }}">
+                                    <img src="{{ item.image }}" alt="{{ item.variant.size }} - {{ item.variant.color }}" class="img-fluid rounded">
+                                </a>
+                            </div>
+                        {% endfor %}
+                    </div>
                 </div>
-                
-                <br><br>
-                
-                <div class="row ">
-                    {% for item in related_variants %}
-                        <div class="col-md-3">
-                            <a class="re-product" href="{% url 'product_detail' product.id %}?variant_id={{ item.variant.id }}">
-                                <img src="{{ item.image }}" class="card-img-top" alt="{{ item.variant.size }} - {{ item.variant.color }}">
-                            </a>
-                        </div>
-                    {% endfor %}
             </div>
         </div>
 
-        
-
-        <!-- Reviews Section -->
         <div class="reviews mt-5">
-            <h2 class="heading">Customer Reviews</h2>
+            <h2 class="mb-4">Customer Reviews</h2>
             {% for review in reviews %}
-            <div class="mb-4 form-control">
-                <h6>{{ review.user.email }}</h6>
-
-                <div>
-                    {% for _ in review.full_stars %}
-                    <i class="fas fa-star"></i>
-                    {% endfor %}
-                    {% for _ in review.empty_stars %}
-                    <i class="far fa-star"></i>
-                    {% endfor %}
+            <div class="card mb-3">
+                <div class="card-body">
+                    <h6 class="card-subtitle mb-2 text-muted">{{ review.user.email }}</h6>
+                    <div class="mb-2 star-rating">
+                        {% for _ in review.full_stars %}
+                        <i class="fas fa-star"></i>
+                        {% endfor %}
+                        {% for _ in review.empty_stars %}
+                        <i class="far fa-star"></i>
+                        {% endfor %}
+                    </div>
+                    <p class="card-text">{{ review.review_text }}</p>
+                    <small class="text-muted">{{ review.created_at }}</small>
                 </div>
-                <p class="review">{{ review.review_text }}</p>
-                <small class="text-muted">{{ review.created_at }}</small>
             </div>
             {% empty %}
             <p>No reviews yet. Be the first to review this product!</p>
             {% endfor %}
         </div>
 
-        <!-- Add Review -->
         <div class="add-review mt-5">
-            <h2>Add Your Review</h2>
+            <h2 class="mb-4">Add Your Review</h2>
             <form method="POST" action="{% url 'add_review' product.id %}">
                 {% csrf_token %}
                 <div class="mb-3">
@@ -494,47 +335,41 @@ footer {
             </form>
         </div>
     </div>
-</div>
-    
 
-<section class="py-5 bg-light">
-    <div class="container">
-        <h2 class="text-center mb-5">Related Products</h2>
-        <div class="row g-4">
-            {% for item in related_products %}
-            <div class="col-md-3">
-                <div class="card product-card h-100">
-                    <a href="{% url 'product_detail' item.product.id %}?variant_id={{ item.variant.id }}">
-                        <img src="{{ item.image }}" alt="{{ item.product.name }}" class="product-image img-fluid mb-2">
-                    </a>
-                    <div class="card-body d-flex flex-column">
-                        <h5 class="card-title">{{ item.product.product_name }}</h5>
-                        <p class="text-muted">Color: {{ item.variant.color }}</p>
-                        <p class="price text-center mb-0">
-                            <strong>Rs. {{ item.variant.actual_price|floatformat:2 }}</strong>
-                            <span class="text-muted text-decoration-line-through" style="font-size: 0.85em;">Rs. {{ item.actual_price|floatformat:2 }}</span>
-                            <span class="text-danger fw-bold">({{ item.discount|floatformat:0 }}rs OFF)</span>
-                        </p>
-                        <!-- Out of Stock Label -->
-                         
-                        <!-- Out of Stock or Unavailable Label -->
+    <section class="py-5 bg-light">
+        <div class="container">
+            <h2 class="text-center mb-5">Related Products</h2>
+            <div class="row g-4">
+                {% for item in related_products %}
+                <div class="col-md-3">
+                    <div class="card h-100">
+                        <a href="{% url 'product_detail' item.product.id %}?variant_id={{ item.variant.id }}">
+                            <img src="{{ item.image }}" alt="{{ item.product.name }}" class="card-img-top">
+                        </a>
+                        <div class="card-body">
+                            <h5 class="card-title">{{ item.product.product_name }}</h5>
+                            <p class="text-muted">Color: {{ item.variant.color }}</p>
+                            <p class="mb-0">
+                                <strong>₹{{ item.variant.actual_price|floatformat:2 }}</strong>
+                                <span class="text-muted text-decoration-line-through">₹{{ item.actual_price|floatformat:2 }}</span>
+                                <span class="text-danger">({{ item.discount|floatformat:0 }}rs OFF)</span>
+                            </p>
+                        </div>
                         {% if item.all_sizes_out_of_stock %}
-                            <div class="text-center text-danger mt-3" style="background-color: #ffe4b5;">
-                                <strong>Unavailable</strong>
-                            </div>
+                        <div class="card-footer text-center bg-danger text-white">
+                            <strong>Unavailable</strong>
+                        </div>
                         {% endif %}
                     </div>
                 </div>
+                {% endfor %}
             </div>
-            {% endfor %}
         </div>
-    </div>
-</section>
+    </section>
 
-
-    <footer class="footer py-4">
-        <div class="container-fluid">
-            <div class="row text-white">
+    <footer class="footer py-4 mt-5">
+        <div class="container">
+            <div class="row">
                 <div class="col-md-4 mb-4">
                     <h5>About Bellus</h5>
                     <p>Bellus offers a curated selection of elegant and timeless women's fashion. Our pieces are designed to empower and inspire.</p>
@@ -563,60 +398,59 @@ footer {
         </div>
     </footer>
     
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
-    <script>
-        function changeImage(element) {
-            const mainImage = document.getElementById("main-image");
-            mainImage.src = element.src;
-        }
-    </script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
-   
-    <script>
-        document.querySelectorAll(".size-box").forEach((box) => {
-    box.addEventListener("click", function () {
-        const sizeId = this.getAttribute("data-size-id");
-        document.getElementById("size_id").value = sizeId;
-
-        // Optional: Add a visual indicator for the selected size
-        document.querySelectorAll(".size-box").forEach((el) => el.classList.remove("selected"));
-        this.classList.add("selected");
-        
-        // Enable Add to Cart button if both variant and size are selected
-        enableAddToCartButton();
-    });
-});
-
-function enableAddToCartButton() {
-    const variantId = document.getElementById("variant_id").value;
-    const sizeId = document.getElementById("size_id").value;
-
-    const addToCartBtn = document.getElementById("add-to-cart-btn");
-
-    // Enable the Add to Cart button if both variant and size are selected
-    if (variantId && sizeId) {
-        addToCartBtn.disabled = false;
-    } else {
-        addToCartBtn.disabled = true;
-    }
-}
-
-document.addEventListener('DOMContentLoaded', enableAddToCartButton);
-
-    </script>
-    
+<!-- Image Change Script -->
 <script>
-    // Function to dynamically update images
     function changeImage(element) {
         const mainImage = document.getElementById("main-image");
         const zoomedImage = document.getElementById("zoomed-image");
-        
+
         // Update the main and zoomed image sources
         mainImage.src = element.src;
         zoomedImage.src = element.src;
     }
+</script>
 
+<!-- Size Selection Logic -->
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // Add click event listener to all size-box elements
+        document.querySelectorAll('.size-box').forEach(box => {
+            box.addEventListener('click', function () {
+                // Ignore out-of-stock sizes
+                if (this.classList.contains('out-of-stock')) {
+                    return;
+                }
+
+                // Remove 'selected' class from all size boxes
+                document.querySelectorAll('.size-box').forEach(otherBox => {
+                    otherBox.classList.remove('selected');
+                });
+
+                // Add 'selected' class to the clicked size box
+                this.classList.add('selected');
+
+                // Update the hidden input with the selected size ID
+                const sizeId = this.getAttribute('data-size-id');
+                document.getElementById('size_id').value = sizeId;
+
+                // Enable the Add to Cart button if a valid size is selected
+                const addToCartBtn = document.getElementById('add-to-cart-btn');
+                if (sizeId) {
+                    addToCartBtn.disabled = false;
+                }
+
+                // Debugging log (optional)
+                console.log("Selected Size ID:", sizeId);
+            });
+        });
+    });
+</script>
+
+<!-- Zoom Effect Script -->
+<script>
     document.addEventListener('DOMContentLoaded', () => {
         const container = document.querySelector('.product-image-container');
         const mainImage = document.getElementById('main-image');
@@ -668,50 +502,56 @@ document.addEventListener('DOMContentLoaded', enableAddToCartButton);
         });
     });
 </script>
-<!-- click the size selecting button -->
+
+<!-- SweetAlert for Messages -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
-    document.querySelectorAll('.size-box').forEach(box => {
-        box.addEventListener('click', function() {
-            if (!this.classList.contains('out-of-stock')) {
-                document.querySelectorAll('.size-box').forEach(otherBox => {
-                    otherBox.classList.remove('selected');
-                });
-                this.classList.add('selected');
-                // Set the selected size value (you can submit it to a form or handle it however you like)
-                const selectedSizeId = this.getAttribute('data-size-id');
-                console.log("Selected Size ID:", selectedSizeId);
-            }
+    document.addEventListener('DOMContentLoaded', () => {
+        {% if messages %}
+        const messages = [
+            {% for message in messages %}
+            {
+                level: "{{ message.tags }}",
+                text: "{{ message }}"
+            },
+            {% endfor %}
+        ];
+        messages.forEach(message => {
+            Swal.fire({
+                toast: true,
+                position: 'top-right',
+                icon: message.level === 'success' ? 'success' : 'error',
+                title: message.text,
+                showConfirmButton: false,
+                timer: 3000
+            });
         });
+        {% endif %}
     });
 </script>
 
+<script>
+    function validateSearch() {
+        const searchInput = document.querySelector('input[name="search"]').value.trim();
+        if (!searchInput) {
+            showPopup();
+            return false; // Prevent form submission
+        }
+        return true; // Allow form submission
+    }
 
-  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-  <script>
-      document.addEventListener('DOMContentLoaded', (event) => {
-          {% if messages %}
-              const messages = [
-                  {% for message in messages %}
-                      {
-                          level: "{{ message.tags }}",
-                          text: "{{ message }}"
-                      },
-                  {% endfor %}
-              ];
-              messages.forEach(message => {
-                  Swal.fire({
-                      toast: true,
-                      position: 'top-right',
-                      icon: message.level === 'success' ? 'success' : 'error',
-                      title: message.text,
-                      showConfirmButton: false,
-                      timer: 3000
-                  });
-              });
-          {% endif %}
-      });
-  </script>
-    
+    function showPopup() {
+        const popup = document.getElementById('searchPopup');
+        popup.classList.remove('hidden');
+        popup.classList.add('visible');
+    }
+
+    function hidePopup() {
+        const popup = document.getElementById('searchPopup');
+        popup.classList.remove('visible');
+        popup.classList.add('hidden');
+    }
+</script>
 </body>
 </html>
 

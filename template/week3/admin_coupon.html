@@ -304,8 +304,6 @@
                     <a class="nav-link" href="{% url 'admin_category' %}"><i class="fas fa-tags me-2"></i> Category</a>
                     <a class="nav-link" href="{% url 'admin_coupon' %}"><i class="fas fa-box me-2"></i> Coupon</a>
                     <a class="nav-link" href="{% url 'salesreport' %}"><i class="fas fa-chart-bar me-2"></i> Sales Report</a>
-                    <a class="nav-link" href="#"><i class="fas fa-image me-2"></i> Banner Manage</a>
-                    <a class="nav-link" href="#"><i class="fas fa-gift me-2"></i> Offers</a>
                 </nav>
             </div>
     
@@ -330,7 +328,6 @@
                                 <div class="card h-100 coupon-card">
                                     <div class="card-body">
                                         <h5 class="card-title">{{ coupon.name }}</h5>
-                                        <p class="card-text coupon-code">{{ coupon.code }}</p>
                                         <p class="card-text offer-rate">
                                             {% if coupon.discount_type == 'percentage' %}
                                                 {{ coupon.offer_rate }}% off
@@ -377,27 +374,32 @@
                     {% csrf_token %}
                     <div class="mb-3">
                         <label for="couponName" class="form-label">Coupon Name</label>
-                        <input type="text" class="form-control" id="couponName" name="couponName" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="couponCode" class="form-label">Coupon Code</label>
-                        <input type="text" class="form-control" id="couponCode" name="couponCode" required>
+                        <input type="text" class="form-control" id="couponName" name="couponName">
+                        {% if errors.couponName %}
+                            <small class="text-danger">{{ errors.couponName }}</small>
+                        {% endif %}
                     </div>
                     <div class="mb-3">
                         <label for="couponCondition" class="form-label">Condition</label>
-                        <textarea class="form-control" id="couponCondition" name="couponCondition" rows="2" required></textarea>
+                        <textarea class="form-control" id="couponCondition" name="couponCondition" rows="2" ></textarea>
+                        {% if errors.couponCondition %}
+                            <small class="text-danger">{{ errors.couponCondition }}</small>
+                        {% endif %}
                     </div>
                     <div class="mb-3">
                         <label for="offerRate" class="form-label">Offer Rate</label>
                         <div class="input-group">
-                            <input type="number" class="form-control" id="offerRate" name="offerRate" required>
+                            <input type="number" class="form-control" id="offerRate" name="offerRate">
                             <span class="input-group-text">%</span>
+                        {% if errors.offerRate %}
+                            <small class="text-danger">{{ errors.offerRate }}</small>
+                        {% endif %}
                         </div>
                     </div>
                     <!-- Discount Type -->
                     <div class="mb-3">
                         <label for="discountType" class="form-label">Discount Type</label>
-                        <select class="form-select" id="discountType" name="discountType" required>
+                        <select class="form-select" id="discountType" name="discountType">
                             <option value="percentage">Percentage</option>
                             <option value="fixed">Fixed Amount</option>
                         </select>
@@ -405,17 +407,26 @@
                     <!-- Discount Value -->
                     <div class="mb-3">
                         <label for="discountValue" class="form-label">Discount Value</label>
-                        <input type="number" class="form-control" id="discountValue" name="discountValue" required>
+                        <input type="number" class="form-control" id="discountValue" name="discountValue">
+                    {% if errors.discountValue %}
+                        <small class="text-danger">{{ errors.discountValue }}</small>
+                    {% endif %}
                     </div>
 
                     <div class="mb-3">
                         <label for="couponValidity" class="form-label">Valid Until</label>
-                        <input type="date" class="form-control" id="couponValidity" name="couponValidity" required>
+                        <input type="date" class="form-control" id="couponValidity" name="couponValidity">
+                    {% if errors.couponValidity %}
+                        <small class="text-danger">{{ errors.couponValidity }}</small>
+                    {% endif %}
                     </div>
                     <!-- Maximum Uses -->
                     <div class="mb-3">
                         <label for="maxUses" class="form-label">Maximum Uses</label>
-                        <input type="number" class="form-control" id="maxUses" name="maxUses" value="1" required>
+                        <input type="number" class="form-control" id="maxUses" name="maxUses" value="1">
+                        {% if errors.maxUses %}
+                            <small class="text-danger">{{ errors.maxUses }}</small>
+                        {% endif %}
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>

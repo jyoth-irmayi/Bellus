@@ -270,44 +270,71 @@
                     <div id="formErrors" class="alert alert-danger d-none"></div>
                     <div class="mb-3">
                         <label for="name" class="form-label">Name</label>
-                        <input type="text" class="form-control" id="name" name="name" value="">
+                        <input type="text" class="form-control {% if errors.name %}is-invalid{% endif %}" id="name" name="name" value="{{ request.POST.name }}">
+                        {% if errors.name %}
+                        <div class="invalid-feedback">{{ errors.name }}</div>
+                        {% endif %}
                     </div>
                     <div class="mb-3">
                         <label for="phone" class="form-label">Phone Number</label>
-                        <input type="tel" class="form-control" id="phone" name="phone" value="">
+                        <input type="tel" class="form-control {% if errors.phone %}is-invalid{% endif %}" id="phone" name="phone" value="{{ request.POST.phone }}">
+                        {% if errors.phone %}
+                        <div class="invalid-feedback">{{ errors.phone }}</div>
+                        {% endif %}
                     </div>
                     <div class="mb-3">
                         <label for="address" class="form-label">Address</label>
-                        <textarea class="form-control" id="address" name="address" rows="3" value=""></textarea>
+                        <textarea class="form-control {% if errors.address %}is-invalid{% endif %}" id="address" name="address" rows="3" value="">{{ request.POST.address }}</textarea>
+                        {% if errors.address %}
+                        <div class="invalid-feedback">{{ errors.address }}</div>
+                        {% endif %}
                     </div>
                     <div class="row mb-3">
                         <div class="col">
                             <label for="location" class="form-label">Location</label>
-                            <input type="text" class="form-control" id="location" name="location" value="">
+                            <input type="text" class="form-control {% if errors.location %}is-invalid{% endif %}" id="location" name="location" value="{{ request.POST.location }}">
+                            {% if errors.location %}
+                            <div class="invalid-feedback">{{ errors.location }}</div>
+                            {% endif %}
                         </div>
                         <div class="col">
                             <label for="landmark" class="form-label">Landmark</label>
-                            <input type="text" class="form-control" id="landmark" name="landmark" value="">
+                            <input type="text" class="form-control {% if errors.landmark %}is-invalid{% endif %}" id="landmark" name="landmark" value="{{ request.POST.landmark }}">
+                            {% if errors.landmark %}
+                            <div class="invalid-feedback">{{ errors.landmark }}</div>
+                            {% endif %}
                         </div>
                     </div>
                     <div class="row mb-3">
                         <div class="col">
                             <label for="city" class="form-label">City</label>
-                            <input type="text" class="form-control" id="city" name="city" value="">
+                            <input type="text" class="form-control {% if errors.city %}is-invalid{% endif %}" id="city" name="city" value="{{ request.POST.city }}">
+                            {% if errors.city %}
+                            <div class="invalid-feedback">{{ errors.city }}</div>
+                            {% endif %}
                         </div>
                         <div class="col">
                             <label for="district" class="form-label">District</label>
-                            <input type="text" class="form-control" id="district" name="district"value="">
+                            <input type="text" class="form-control {% if errors.district %}is-invalid{% endif %}" id="district" name="district"value="{{ request.POST.district }}">
+                            {% if errors.district %}
+                            <div class="invalid-feedback">{{ errors.district }}</div>
+                            {% endif %}
                         </div>
                     </div>
                     <div class="row mb-3">
                         <div class="col">
                             <label for="state" class="form-label">State</label>
-                            <input type="text" class="form-control" id="state" name="state" value="">
+                            <input type="text" class="form-control {% if errors.state %}is-invalid{% endif %}" id="state" name="state" value="{{ request.POST.state }}">
+                            {% if errors.state %}
+                            <div class="invalid-feedback">{{ errors.state }}</div>
+                            {% endif %}
                         </div>
                         <div class="col">
                             <label for="pincode" class="form-label">PIN Code</label>
-                            <input type="text" class="form-control" id="pincode" name="pincode" value="">
+                            <input type="text" class="form-control {% if errors.pincode %}is-invalid{% endif %}" id="pincode" name="pincode" value="{{ request.POST.pincode }}">
+                            {% if errors.pincode %}
+                            <div class="invalid-feedback">{{ errors.pincode }}</div>
+                            {% endif %}
                         </div>
                     </div>
                     <div class="mb-3">
@@ -320,6 +347,9 @@
                             <input class="form-check-input" type="radio" name="addressType" id="workType" value="work" {% if edit_address and edit_address.address_type == 'work' %}checked{% endif %}>
                             <label class="form-check-label" for="workType">Work</label>
                         </div>
+                        {% if errors.addressType %}
+                        <div class="text-danger">{{ errors.addressType }}</div>
+                        {% endif %}
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -377,7 +407,7 @@
         event.preventDefault();
         var formData = $(this).serialize(); // Get form data
 
-        $.ajax({
+        $.ajax({    
             type: 'POST',
             url: "{% url 'user_address' %}", // Your URL to handle the form
             data: formData,
@@ -403,7 +433,23 @@
     });
 });
 
-</script>    
+</script>  
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const modal = new bootstrap.Modal(document.getElementById("addAddressModal"));
+
+        // Make sure errorsExist is passed as a boolean value
+        const hasErrors = "{{ has_errors|yesno:'true,false' }}" === "true";
+
+        const successMessage = document.querySelector(".alert-success");
+
+        if (errorsExist === 'true') {
+            modal.show();  // Re-open the modal if there are errors
+        } else if (successMessage) {
+            modal.hide();  // Close the modal if there's a success message
+        }
+    });
+</script>  
 </body>
 </html>
 

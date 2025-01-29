@@ -130,6 +130,112 @@ footer {
 .breadcrumb-item + .breadcrumb-item::before {
     content: ">";
 }
+/* Popup Background */
+.popup {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+/* Popup Content */
+.popup-content {
+    background: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    text-align: center;
+    width: 300px;
+}
+
+/* Popup Buttons */
+.popup-actions {
+    margin-top: 20px;
+    display: flex;
+    justify-content: space-around;
+}
+
+.btn {
+    padding: 8px 16px;
+    border: none;
+    cursor: pointer;
+    border-radius: 4px;
+}
+
+.btn-danger {
+    background-color: #dc3545;
+    color: white;
+}
+
+.btn-danger:hover {
+    background-color: #c82333;
+}
+
+.btn-secondary {
+    background-color: #6c757d;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background-color: #5a6268;
+}
+
+/* Hidden Class */
+.hidden {
+    display: none;
+}
+/* Custom alert box styling */
+.custom-alert {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+    padding: 15px 20px;
+    border-radius: 5px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: Arial, sans-serif;
+    font-size: 14px;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+/* Hidden state */
+.custom-alert.hidden {
+    opacity: 0;
+    transform: translateY(-30px);
+    pointer-events: none;
+}
+
+/* Success style */
+.custom-alert.success {
+    background-color: #4caf50;
+    color: #fff;
+}
+
+/* Error style */
+.custom-alert.error {
+    background-color: #f44336;
+    color: #fff;
+}
+
+/* Close button */
+.custom-alert .close-btn {
+    background: transparent;
+    border: none;
+    font-size: 16px;
+    color: inherit;
+    cursor: pointer;
+}
+
+
 </style>
     <!-- Include jQuery -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
@@ -172,10 +278,17 @@ footer {
             </div>
         </div>
     </nav>
+    
 
     <div class="container py-5 bg-light">
         <h1 class="mb-5 text-center">Your Shopping Cart</h1>
-        
+        {% if messages %}
+            <div class="alert alert-warning">
+                {% for message in messages %}
+                    <p>{{ message }}</p>
+                {% endfor %}
+            </div>
+        {% endif %}
         <div class="row">
             <!-- Cart Items Column -->
             <div class="col-lg-8">
@@ -193,10 +306,11 @@ footer {
                                 {% endif %}
                             </div>
                             <div class="col-md-6 col-8">
-                                <h6 class="text-black mb-0">{{ item.variant.product.product_name }}</h6>
+                                <h6 class="text-black mb-0">{{ item.variant.product.product_name }}</h6><br>
                                 <p><strong>Brand:</strong> {{ item.variant.product.brand }}</p>
+                                <h6><strong>Size:</strong> {{item.variant_size.size}}</h6>
+                                <h6><strong>Stock:</strong> {{item.variant_size.quantity}}</h6>
                                 <p><strong class="text-success">Discount:</strong> {{ item.variant.product.discount }}</p>
-
                             </div>
                             <div class="col-md-4 col-12 mt-3 mt-md-0">
                                 <div class="d-flex justify-content-between align-items-center ">
@@ -227,8 +341,23 @@ footer {
                                 </button>
 
                                     <div class="text-end">
-                                        <h6 class="mb-0">₹{{ item.total_price }}</h6>
+                                        <h6 class="mb-0">₹{{ item.price }}</h6>
                                     </div>
+                                    <div id="delete-confirmation-popup" class="popup hidden">
+                                        <div class="popup-content">
+                                            <p id="popup-message" class="popup-message">Are you sure you want to delete this item?</p>
+                                            <div class="popup-actions">
+                                                <button id="confirm-delete" class="btn btn-danger">Yes, Delete</button>
+                                                <button id="cancel-delete" class="btn btn-secondary">Cancel</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div id="custom-alert" class="custom-alert hidden">
+                                        <p id="custom-alert-message"></p>
+                                        <button id="custom-alert-close" class="close-btn">×</button>
+                                    </div>
+                                    
+                                    
                                     <button class="btn btn-danger delete-btn" data-item-id="{{ item.id }}">Delete</button>
                                 </div>
                                 <p id="error-message-{{ item.id }}" class="text-danger"></p>
@@ -253,6 +382,10 @@ footer {
                         <div class="d-flex justify-content-between mb-4">
                             <span>Tax</span>
                             <span>₹{{ tax }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-4">
+                            <span>Deliver charge</span>
+                            <strong style="color: #4caf50;">Free</strong>
                         </div>
                         <!-- <div class="d-flex justify-content-between mb-4">
                             <span class="text-success">Discount</span>
@@ -358,49 +491,61 @@ footer {
                 updateCartQuantity(itemId, newQuantity);
             });
         });
-    
-        // Attach event listeners to delete buttons
-        document.querySelectorAll('.delete-btn').forEach(button => {
-            button.addEventListener('click', function () {
-                const itemId = this.dataset.itemId;
-    
-                // Show confirmation popup
-                const userConfirmed = confirm("Are you sure you want to delete this item?");
-                if (!userConfirmed) {
-                    return; // Exit if the user cancels
-                }
-    
-                // Send POST request to delete cart item
-                fetch(`/delete-cart-item/${itemId}/`, {
-                    method: 'POST',
-                    headers: {
-                        'X-CSRFToken': csrftoken,
-                        'Content-Type': 'application/json',
-                    }
-                }).then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            // Display success message
-                            alert(data.message);
-                            console.log("item deleted")
-    
-                            // Remove item row from the DOM
-                            const itemRow = document.getElementById(`cart-item-${itemId}`);
-                            if (itemRow) {
-                                itemRow.remove();
-                            }
-    
-                            // Optionally, update the cart summary totals dynamically
-                            updateCartSummary();
-                        } else {
-                            alert(data.message); // Show error message
-                        }
-                    }).catch(error => {
-                        console.error('Error:', error);
-                        alert('An error occurred while deleting the cart item.');
-                    });
-            });
-        });
+    // delete confirmation
+    document.querySelectorAll('.delete-btn').forEach(button => {
+    button.addEventListener('click', function () {
+        const itemId = this.dataset.itemId;
+
+        // Show the custom confirmation popup
+        const popup = document.getElementById('delete-confirmation-popup');
+        popup.classList.remove('hidden');
+
+        // Handle the "Yes, Delete" button
+        const confirmDelete = document.getElementById('confirm-delete');
+        confirmDelete.onclick = () => {
+            popup.classList.add('hidden'); // Hide the popup
+
+            // Inside the "Yes, Delete" button click handler
+fetch(`/delete-cart-item/${itemId}/`, {
+    method: 'POST',
+    headers: {
+        'X-CSRFToken': csrftoken,
+        'Content-Type': 'application/json',
+    }
+})
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showCustomAlert(data.message, 'success'); // Display success alert
+            console.log("Item deleted");
+
+            // Remove item row from the DOM
+            const itemRow = document.getElementById(`cart-item-${itemId}`);
+            if (itemRow) {
+                itemRow.remove();
+            }
+
+            // Optionally, update the cart summary totals dynamically
+            updateCartSummary();
+        } else {
+            showCustomAlert(data.message, 'error'); // Display error alert
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showCustomAlert('An error occurred while deleting the cart item.', 'error');
+    });
+
+        };
+
+        // Handle the "Cancel" button
+        const cancelDelete = document.getElementById('cancel-delete');
+        cancelDelete.onclick = () => {
+            popup.classList.add('hidden'); // Simply hide the popup
+        };
+    });
+});
+
     
         // Function to update cart summary totals dynamically
         function updateCartSummary() {
@@ -424,7 +569,7 @@ footer {
             const plusButton = document.querySelector(`#plus-btn-${itemId}`);
 
 // Disable the button to prevent further clicks during the request
-if (plusButton) {
+if (quantity >= 5) {
     plusButton.disabled = true;
 }
 
@@ -472,6 +617,68 @@ if (plusButton) {
 
 
     </script>
+    <script>
+function showCustomAlert(message, type) {
+    const alertBox = document.getElementById('custom-alert');
+    const alertMessage = document.getElementById('custom-alert-message');
+    const closeButton = document.getElementById('custom-alert-close');
+
+    // Set message and style
+    alertMessage.textContent = message;
+    alertBox.className = `custom-alert ${type}`; // Add 'success' or 'error' class
+    alertBox.classList.remove('hidden');
+
+    // Auto-hide the alert after 3 seconds
+    setTimeout(() => {
+        alertBox.classList.add('hidden');
+    }, 3000);
+
+    // Close the alert when the close button is clicked
+    closeButton.addEventListener('click', () => {
+        alertBox.classList.add('hidden');
+    });
+}
+</script>
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const modal = new bootstrap.Modal(document.getElementById("addAddressModal"));
+
+        // Make sure errorsExist is passed as a boolean value
+        const hasErrors = "{{ has_errors|yesno:'true,false' }}" === "true";
+
+        const successMessage = document.querySelector(".alert-success");
+
+        if (errorsExist === 'true') {
+            modal.show();  // Re-open the modal if there are errors
+        } else if (successMessage) {
+            modal.hide();  // Close the modal if there's a success message
+        }
+    });
+</script>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        {% if messages %}
+        const messages = [
+            {% for message in messages %}
+            {
+                level: "{{ message.tags }}",
+                text: "{{ message }}"
+            },
+            {% endfor %}
+        ];
+        messages.forEach(message => {
+            Swal.fire({
+                toast: true,
+                position: 'top-right',
+                icon: message.level === 'success' ? 'success' : 'error',
+                title: message.text,
+                showConfirmButton: false,
+                timer: 3000
+            });
+        });
+        {% endif %}
+    });
+</script>
     
 </body>
 </html>

@@ -165,47 +165,46 @@
                     </div>
                 </nav>
             </div>
-<!-- Wallet Section -->
-<div class="col-md-9 col-lg-10">
-    <div class="wallet-card">
-        <h1 class="text-center mb-4">My Wallet</h1>
-        <div class="text-center mb-4">
-            <p class="text-muted">Current Balance</p>
-            <p id="current-balance" class="balance">₹{{ wallet.balance }}</p>
-        </div>
-        <div class="d-flex justify-content-center mb-4">
-            <button type="button" class="btn btn-primary me-2" data-bs-toggle="modal" data-bs-target="#addFundsModal">Add Funds</button>
-            <a href="#" class="btn btn-outline-primary">Withdraw</a>
-        </div>
-        <h2 class="h4 mb-3">Recent Transactions</h2>
-        <div class="transaction-list">
-            <ul class="list-group" id="transaction-list">
-                {% for transaction in transactions %}
-                <li class="list-group-item d-flex justify-content-between align-items-center">
-                    {% if transaction.order %}
-                        Order ID: {{ transaction.order.id }} -
-                    {% endif %}
-                    {{ transaction.transaction_type }}:
-                    <span class="badge bg-primary rounded-pill">
-                        {% if transaction.amount < 0 %}
-                            - ₹{{ transaction.amount|default:0 }}
-                        {% else %}
-                            + ₹{{ transaction.amount|default:0 }}
-                        {% endif %}
-                    </span>
-                </li>
-                {% empty %}
-                <li class="list-group-item">No transactions available</li>
-                {% endfor %}
-            </ul>
+            <!-- Wallet Section -->
+            <div class="col-md-9 col-lg-10">
+                <div class="wallet-card">
+                    <h1 class="text-center mb-4">My Wallet</h1>
+                    <div class="text-center mb-4">
+                        <p class="text-muted">Current Balance</p>
+                        <p id="current-balance" class="balance">₹{{ wallet.balance }}</p>
+                    </div>
+                    <div class="d-flex justify-content-center mb-4">
+                        <button type="button" class="btn btn-primary me-2" data-bs-toggle="modal" data-bs-target="#addFundsModal">Add Funds</button>
+                    </div>
+                    <h2 class="h4 mb-3">Recent Transactions</h2>
+                    <div class="transaction-list">
+                        <ul class="list-group" id="transaction-list">
+                            {% for transaction in transactions %}
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                {% if transaction.order %}
+                                    Order ID: {{ transaction.order.id }} -
+                                {% endif %}
+                                {{ transaction.transaction_type }}:
+                                <span class="badge bg-primary rounded-pill">
+                                    {% if transaction.amount < 0 %}
+                                        - ₹{{ transaction.amount|default:0 }}
+                                    {% else %}
+                                        + ₹{{ transaction.amount|default:0 }}
+                                    {% endif %}
+                                </span>
+                            </li>
+                            {% empty %}
+                            <li class="list-group-item">No transactions available</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
-</div>
-</div>
-</div>
     
 
-<!-- Add Funds Modal -->
+        <!-- Add Funds Modal -->
 <div class="modal fade" id="addFundsModal" tabindex="-1" aria-labelledby="addFundsModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -214,10 +213,11 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <form id="addFundsForm">
+                <form method="POST" action="{% url 'add_to_wallet' %}" id="addFundsForm">
+                    {% csrf_token %}
                     <div class="mb-3">
                         <label for="amount" class="form-label">Enter Amount</label>
-                        <input type="number" class="form-control" id="amount" name="amount" min="1" required>
+                        <input type="number" class="form-control" id="amount" name="amounts" min="1" required>
                     </div>
                     <button type="submit" class="btn btn-primary w-100">Add Funds</button>
                 </form>
@@ -225,6 +225,7 @@
         </div>
     </div>
 </div>
+
 
     <footer class="footer py-4">
         <div class="container-fluid">
@@ -259,7 +260,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.2/font/bootstrap-icons.min.css">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        document.getElementById("addFundsForm").addEventListener("submit", function (e) {
+       document.getElementById("addFundsForm").addEventListener("submit", function (e) {
     e.preventDefault();
 
     // Get the amount entered by the user
@@ -270,30 +271,62 @@
         return;
     }
 
-    // You can send this amount to your server (e.g., via AJAX) to update the wallet balance
-    // For this example, we will just simulate adding the amount to the balance.
+    // Send the form data via AJAX
+    fetch("{% url 'add_to_wallet' %}", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+            "X-CSRFToken": "{{ csrf_token }}",
+        },
+        body: new URLSearchParams({
+            amounts: amount, // Match the backend's POST key
+        }),
+    })
+        .then((response) => response.json())
+        .then((data) => {
+            if (data.success) {
+                alert(`₹${amount} added to your wallet successfully!`);
+                // Optionally update the wallet balance in the UI
+            } else {
+                alert(data.error || "An error occurred.");
+            }
+        })
+        .catch((error) => {
+            console.error("Error:", error);
+            alert("Failed to add funds. Please try again.");
+        });
 
-    var currentBalance = parseFloat(document.getElementById("current-balance").innerText.replace('₹', '').trim());
-    var newBalance = currentBalance + parseFloat(amount);
-
-    // Update the wallet balance in the UI
-    document.getElementById("current-balance").innerText = "₹" + newBalance.toFixed(2);
-
-    // You can add logic here to display a success message or update the transaction history
-    var transactionList = document.getElementById("transaction-list");
-    var newTransaction = document.createElement("li");
-    newTransaction.classList.add("list-group-item", "d-flex", "justify-content-between", "align-items-center");
-    newTransaction.innerHTML = `Added Funds: <span class="badge bg-primary rounded-pill">+ ₹${amount}</span>`;
-    transactionList.prepend(newTransaction);
-
-    // Close the modal after adding funds
-    var addFundsModal = bootstrap.Modal.getInstance(document.getElementById('addFundsModal'));
+    // Close the modal after submission
+    var addFundsModal = bootstrap.Modal.getInstance(document.getElementById("addFundsModal"));
     addFundsModal.hide();
-
-    // Optionally, clear the input field
-    document.getElementById("amount").value = '';
 });
 
+
     </script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            {% if messages %}
+            const messages = [
+                {% for message in messages %}
+                {
+                    level: "{{ message.tags }}",
+                    text: "{{ message }}"
+                },
+                {% endfor %}
+            ];
+            messages.forEach(message => {
+                Swal.fire({
+                    toast: true,
+                    position: 'top-right',
+                    icon: message.level === 'success' ? 'success' : 'error',
+                    title: message.text,
+                    showConfirmButton: false,
+                    timer: 3000
+                });
+            });
+            {% endif %}
+        });
+    </script>
+    
 </body>
 </html>

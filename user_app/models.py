@@ -89,7 +89,7 @@ class Wishlist(models.Model):
         related_name='wishlist'
     )
     variant = models.ForeignKey(
-        'admin_app.Variant',  # Reference to the Variant model in the admin app
+        'admin_app.Variant',  # Now linked to Variant instead of VariantSize
         on_delete=models.CASCADE,
         related_name='wishlisted'
     )

@@ -141,14 +141,13 @@
                     <a class="nav-link" href="{% url 'admin_category' %}"><i class="fas fa-tags me-2"></i> Category</a>
                     <a class="nav-link" href="{% url 'admin_coupon' %}"><i class="fas fa-box me-2"></i> Coupon</a>
                     <a class="nav-link" href="{% url 'salesreport' %}"><i class="fas fa-chart-bar me-2"></i> Sales Report</a>
-                    <a class="nav-link" href="#"><i class="fas fa-image me-2"></i> Banner Manage</a>
                 </nav>
             </div>
 
             <!-- Main Content -->
             <div class="col-md-10 p-4">
                 <h4 class="mb-4">Edit Product</h4>
-        <div class="container mt-4">
+            <div class="container mt-4">
             <form class="product-form bg-light p-4 rounded" action="{% url 'admin_edit_product' product.product_id %}" method="post" enctype="multipart/form-data">
                 {% csrf_token %}
                 <div class="row">
@@ -192,66 +191,78 @@
                                 <input type="text" name="description" class="form-control" value="{{ product.description }}">
                             </div>
                            
-                    <div class="variants-container">
-                        {% for variant in product.variants.all %}
-                            <div class="variant-item mb-3 bg-light p-3 rounded">
-                                <h4>Variant {{ forloop.counter }}</h4>
-                                <div class="row g-3">
-                                    <input type="hidden" name="variant_{{ variant.id }}_id" value="{{ variant.id }}">
-                                    <div class="col-md-4">
-                                        <label class="form-label">Size</label>
-                                        <input type="text" name="variant_{{ variant.id }}_size" class="form-control" value="{{ variant.size }}">
-                                    </div>
-                                    <div class="col-md-4">
-                                        <label class="form-label">Color</label>
-                                        <input type="text" name="variant_{{ variant.id }}_color" class="form-control" value="{{ variant.color }}">
-                                    </div>
-                                    <div class="col-md-4">
-                                        <label class="form-label">Price</label>
-                                        <input type="text" name="variant_{{ variant.id }}_price" class="form-control" value="{{ variant.price }}">
-                                    </div>
-                                    <div class="col-md-4">
-                                        <label class="form-label">Stock</label>
-                                        <input type="number" name="variant_{{ variant.id }}_stock" class="form-control" value="{{ variant.stock }}">
-                                    </div>
-
-
-                                    <div class="col-md-12">
-                                        <label class="form-label">Variant Images</label>
-                                        <div class="variant-images d-flex flex-wrap gap-3">
-                                            {% for image in variant.images.all %}
-                                            <div class="variant-image-wrapper position-relative text-center">
-                                                <img src="{{ image.image.url }}" class="img-fluid variant-image-preview" alt="Variant Image" style="width: 100px; height: 100px; object-fit: cover;">
-                                                <!-- Retain the image -->
-                                                <input type="hidden" name="variant_{{ variant.id }}_existing_images" value="{{ image.id }}">
-
-                                                <label>Replace Image:</label>
-                                                <input class="btn" type="file" name="variant_{{ variant.id }}_replace_image_{{ image.id }}">
-
-                                                <!-- Delete the image -->
-                                                <button type="button" class="btn btn-secondary " data-image-id="{{ image.id }}">Delete</button>
-                                                <!-- Crop Image Button -->
-                                                <button type="button" class="btn btn-sm btn-primary crop-btn mt-2" data-image-url="{{ image.image.url }}" data-image-id="{{ image.id }}">
-                                                    Crop Image
-                                                </button>
+                            <div class="variants-container">
+                                {% for variant in product.variants.all %}
+                                    <div class="variant-item mb-4 bg-light p-4 rounded">
+                                        <h4 class="mb-3">Variant {{ forloop.counter }}</h4>
+                                        <div class="row g-3">
+                                            <input type="hidden" name="variant_{{ variant.id }}_id" value="{{ variant.id }}">
+                                            
+                                            <div class="col-md-4">
+                                                <label class="form-label">Color</label>
+                                                <input type="text" name="variant_{{ variant.id }}_color" class="form-control" value="{{ variant.color }}">
                                             </div>
-                                        {% endfor %}
+                                            <div class="col-md-4">
+                                                <label class="form-label">Price</label>
+                                                <input type="number" step="0.01" name="variant_{{ variant.id }}_price" class="form-control" value="{{ variant.actual_price }}">
+                                            </div>
+                                            <div class="col-md-12 mt-4">
+                                                <h5>Sizes and Quantities</h5>
+                                                <div class="sizes-container">
+                                                    {% for size in variant.sizes.all %}
+                                                        <div class="size-item row g-2 mb-2">
+                                                            <div class="col-md-3">
+                                                                <input type="text" name="variant_{{ variant.id }}_size_{{ forloop.counter }}" class="form-control" value="{{ size.size }}" placeholder="Size">
+                                                            </div>
+                                                            <div class="col-md-3">
+                                                                <input type="number" name="variant_{{ variant.id }}_stock_{{ forloop.counter }}" class="form-control" value="{{ size.quantity }}" placeholder="Quantity">
+                                                            </div>
+                                                            <div class="col-md-3">
+                                                                <button type="button" class="btn btn-danger btn-sm delete-size" data-size-id="{{ size.id }}">Delete Size</button>
+                                                            </div>
+                                                        </div>
+                                                    {% endfor %}
+                                                </div>
+                                                <button type="button" class="btn btn-primary btn-sm mt-2 add-size" data-variant-id="{{ variant.id }}">Add New Size</button>
+                                            </div>
+                                            <div class="col-md-12 mt-4">
+                                                <label class="form-label">Variant Images</label>
+                                                <div class="variant-images d-flex flex-wrap gap-3">
+                                                    {% for image in variant.images.all %}
+                                                    <div class="variant-image-wrapper position-relative text-center">
+                                                        <img src="{{ image.image.url }}" class="img-fluid variant-image-preview" alt="Variant Image" style="width: 100px; height: 100px; object-fit: cover;">
+                                                        <input type="hidden" name="variant_{{ variant.id }}_existing_images" value="{{ image.id }}">
+                                                        <label class="d-block mt-2">Replace Image:</label>
+                                                        <input class="form-control form-control-sm" type="file" name="variant_{{ variant.id }}_replace_image_{{ image.id }}">
+                                                        <button type="button" class="btn btn-danger btn-sm mt-2" data-image-id="{{ image.id }}">Delete</button>
+                                                        <button type="button" class="btn btn-primary btn-sm mt-2 crop-btn" data-image-url="{{ image.image.url }}" data-image-id="{{ image.id }}">
+                                                            Crop Image
+                                                        </button>
+                                                    </div>
+                                                    {% endfor %}
+                                                </div>
+                                            </div>
+                                            <div class="col-md-12 mt-3">
+                                                <div class="form-check">
+                                                    <input type="checkbox" class="form-check-input" name="delete_variants[]" value="{{ variant.id }}" id="delete_variant_{{ variant.id }}">
+                                                    <label class="form-check-label" for="delete_variant_{{ variant.id }}">
+                                                        Delete this Variant
+                                                    </label>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
-                                    <div class="col-md-12">
-                                        <label>
-                                            <input type="checkbox" name="delete_variants[]" value="{{ variant.id }}">
-                                            Delete this Variant
-                                        </label>
-                                </div>
+                                {% endfor %}
                             </div>
-                        {% endfor %}
-                    </div>
-                    <div class="col-12">
-                        <div class="variant-section">
-                            <div id="new-variants"></div>
-                            <button type="button" class="btn btn-primary" id="add-variant-btn">Add Variant</button>
-                        </div>
+                            
+                            
+                    <!-- Variants Section -->
+                    <div id="variants-container">
+                        <h4 class="mb-3">Product Variants</h4>
+                        <div class="variants"></div>
+                        <button type="button" class="btn btn-outline-primary" onclick="addVariant()">
+                            <i class="fas fa-plus"></i> Add Variant
+                        </button>
                     </div>
                     <div class="col-12 mt-4">
                         <button type="submit" class="btn btn-success me-2">Publish Product</button>
@@ -276,7 +287,7 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
-
+<!-- 
     <script>
 
 // JavaScript for dynamically adding new variants
@@ -378,6 +389,210 @@ document.getElementById('close-crop-modal').addEventListener('click', function (
         cropper.destroy();
     }
 });
+
+
+</script> -->
+
+<script>
+    let variantCounter = 0;
+    const availableSizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
+    function addVariant() {
+        const variantId = variantCounter++;
+        const variantHtml = `
+    <div class="variant-section border rounded p-3 mb-4" id="variant-${variantId}">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5>Variant #${variantId + 1}</h5>
+            <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeVariant(${variantId})">
+                <i class="fas fa-trash"></i>
+            </button>
+        </div>
+
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label class="form-label">Color</label>
+                <input type="text" name="variants[${variantId}][color]" class="form-control" required>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Price</label>
+                <input type="number" step="0.01" name="variants[${variantId}][price]" class="form-control" required>
+            </div>
+
+            <div class="col-12">
+                <label class="form-label">Sizes and Stock</label>
+                <div class="sizes-container">
+                    ${availableSizes.map(size => `
+                        <div class="size-stock-section mb-2">
+                            <div class="row align-items-center g-2">
+                                <div class="col-auto">
+                                    <div class="form-check">
+                                        <input type="checkbox" class="form-check-input" 
+                                            id="size-${variantId}-${size}"
+                                            name="variants[${variantId}][sizes][]"
+                                            value="${size}"
+                                            onchange="toggleStockInput(this, '${variantId}', '${size}')">
+                                        <label class="form-check-label" for="size-${variantId}-${size}">${size}</label>
+                                    </div>
+                                </div>
+                                <div class="col">
+                                    <input type="number" 
+                                        class="form-control form-control-sm" 
+                                        name="variants[${variantId}][stocks][${size}]"
+                                        placeholder="Stock quantity"
+                                        disabled>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+
+            <div class="col-12">
+                <label class="form-label">Images</label>
+                <input type="file" 
+                    class="form-control" 
+                    name="variants[${variantId}][images][]" 
+                    accept="image/*" 
+                    multiple 
+                    onchange="handleImageUpload(event, ${variantId})">
+                <div class="d-flex flex-wrap gap-2 mt-2" id="preview-${variantId}"></div>
+            </div>
+        </div>
+    </div>
+`;
+
+        document.querySelector('.variants').insertAdjacentHTML('beforeend', variantHtml);
+    }
+
+    // Toggle stock input enable/disable based on checkbox
+    function toggleStockInput(checkbox, variantId, size) {
+        const stockInput = document.querySelector(`input[name="variants[${variantId}][stocks][${size}]"]`);
+        stockInput.disabled = !checkbox.checked;
+        if (!checkbox.checked) stockInput.value = "";
+    }
+
+
+
+    // Function to initialize size checkboxes and stock inputs
+    function initializeSizeCheckboxes(variantId) {
+        const variant = document.getElementById(`variant-${variantId}`);
+        variant.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+            checkbox.addEventListener('change', function () {
+                const stockInput = this.closest('.size-stock-section').querySelector('input[type="number"]');
+                stockInput.disabled = !this.checked;
+                if (!this.checked) stockInput.value = '';
+            });
+        });
+    }
+
+    // Function to remove a variant section
+    function removeVariant(variantId) {
+        document.getElementById(`variant-${variantId}`).remove();
+    }
+
+    // Function to handle image uploads
+    function handleImageUpload(event, variantId) {
+        const files = event.target.files;
+        const previewContainer = document.getElementById(`preview-${variantId}`);
+        previewContainer.innerHTML = '';
+
+        Array.from(files).forEach((file, index) => {
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                const imgContainer = document.createElement('div');
+                imgContainer.className = 'position-relative';
+
+                const img = document.createElement('img');
+                img.src = e.target.result;
+                img.style.width = '100px';
+                img.style.height = '100px';
+                img.style.objectFit = 'cover';
+                img.style.cursor = 'pointer';
+
+                const primaryCheckbox = document.createElement('input');
+                primaryCheckbox.type = 'radio';
+                primaryCheckbox.name = `variants[${variantId}][primary_image]`;
+                primaryCheckbox.value = index;
+                primaryCheckbox.className = 'position-absolute top-0 start-0 m-1';
+
+                imgContainer.appendChild(img);
+                imgContainer.appendChild(primaryCheckbox);
+                previewContainer.appendChild(imgContainer);
+
+                img.onclick = () => openCropper(img, event.target, index, imgContainer);
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+
+    // Function to open cropper modal
+    function openCropper(img, input, index, container) {
+        const modal = new bootstrap.Modal(document.getElementById('cropperModal'));
+        const cropperImage = document.getElementById('cropperImage');
+        cropperImage.src = img.src;
+
+        modal.show();
+
+        if (cropper) cropper.destroy();
+        cropper = new Cropper(cropperImage, {
+            aspectRatio: 1,
+            viewMode: 1
+        });
+
+        document.getElementById('cropButton').onclick = () => {
+            const canvas = cropper.getCroppedCanvas();
+            canvas.toBlob(blob => {
+                const croppedFile = new File([blob], `cropped_${input.files[index].name}`, {
+                    type: input.files[index].type
+                });
+
+                const dataTransfer = new DataTransfer();
+                Array.from(input.files).forEach((file, i) => {
+                    dataTransfer.items.add(i === index ? croppedFile : file);
+                });
+                input.files = dataTransfer.files;
+
+                img.src = URL.createObjectURL(blob);
+                modal.hide();
+            });
+        };
+    }
+
+    // Add initial variant if needed
+    // Uncomment the line below if you want to add the first variant by default
+    addVariant();
+
+</script>
+<script>
+    document.addEventListener("DOMContentLoaded", () => {
+  // Add new size
+  document.querySelectorAll(".add-size").forEach((button) => {
+    button.addEventListener("click", function () {
+      const variantId = this.dataset.variantId
+      const sizesContainer = this.closest(".col-md-12").querySelector(".sizes-container")
+      const newSizeItem = document.createElement("div")
+      newSizeItem.className = "size-item row g-2 mb-2"
+      newSizeItem.innerHTML = `
+                <div class="col-md-3">
+                    <input type="text" name="variant_${variantId}_new_size[]" class="form-control" placeholder="Size">
+                </div>
+                <div class="col-md-3">
+                    <input type="number" name="variant_${variantId}_new_quantity[]" class="form-control" placeholder="Quantity">
+                </div>
+                <div class="col-md-3">
+                    <button type="button" class="btn btn-danger btn-sm delete-size">Delete Size</button>
+                </div>
+            `
+      sizesContainer.appendChild(newSizeItem)
+    })
+  })
+
+  // Delete size
+  document.addEventListener("click", (e) => {
+    if (e.target && e.target.classList.contains("delete-size")) {
+      e.target.closest(".size-item").remove()
+    }
+  })
+})
 
 
 </script>

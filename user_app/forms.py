@@ -49,3 +49,5 @@ class UserLoginForm(forms.Form):
 #             'phone_number': forms.TextInput(attrs={'class': 'form-control'}),
 #             'gender': forms.Select(attrs={'class': 'form-control'}),
 #         }
+
+

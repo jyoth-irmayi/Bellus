@@ -11,8 +11,6 @@ from django.db import transaction
 
 
 
-
-
 # Create your models here.
 class categorys(models.Model):
     id = models.BigAutoField(primary_key=True)
@@ -54,7 +52,7 @@ class Product(models.Model):
 class Variant(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='variants')
     color = models.CharField(max_length=50, blank=True, null=True)  # E.g., "Red", "Blue"
-    actual_price = models.DecimalField(max_digits=10, decimal_places=2)
+    actual_price = models.DecimalField(max_digits=10, decimal_places=2,default=0)
     is_active = models.BooleanField(default=True)
 
     def __str__(self):
@@ -118,9 +116,11 @@ class Cart(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def calculate_total(self):
+        """Calculate the total amount for the cart without applying discounts."""
         return sum(item.total_price for item in self.cart_items.all())
 
     def calculate_discount(self):
+        """Calculate the discount based on the coupon applied."""
         if self.coupon:
             if self.coupon.discount_type == 'percentage':
                 return self.calculate_total() * (self.coupon.discount_value / 100)
@@ -129,7 +129,13 @@ class Cart(models.Model):
         return 0
 
     def calculate_grand_total(self):
+        """Calculate the grand total (total - discount)."""
         return self.calculate_total() - self.calculate_discount()
+
+    def update_total_amount(self):
+        """Update the total amount field dynamically."""
+        self.total_amount = self.calculate_grand_total()
+        self.save()
 
     
 
@@ -144,17 +150,22 @@ class CartItem(models.Model):
         on_delete=models.CASCADE,
         related_name='cart_items'
     )
+    variant_size = models.ForeignKey(
+        VariantSize,
+        on_delete=models.CASCADE,
+        related_name='cart_items',default=0
+    )
     price = models.IntegerField()
     quantity = models.PositiveIntegerField(default=1)
     discount=models.PositiveIntegerField()
 
     def __str__(self):
-        return f"{self.quantity} x {self.variant.product.product_name} ({self.variant.size or 'No size'}, {self.variant.color or 'No color'}) in {self.cart.user.email}'s cart"
+        return f"{self.quantity} x {self.variant.product.product_name} ({self.variant_size.size or 'No size'}, {self.variant.color or 'No color'}) in {self.cart.user.email}'s cart"
 
     @property
     def total_price(self):
         """Calculate the total price for this cart item based on the variant."""
-        return self.quantity * self.variant.price
+        return self.quantity * self.variant.actual_price
     
 
 
@@ -181,7 +192,8 @@ class Order(models.Model):
         null=True,
         blank=True
     )
-    payment_id = models.CharField(max_length=100, null=True, blank=True)  # Unique identifier for payment
+    
+    payment_id = models.CharField(max_length=100, null=True, blank=True)
     order_id = models.UUIDField(default=uuid.uuid4, editable=False, null=True)
     order_date = models.DateTimeField(auto_now_add=True)
     payment_method = models.CharField(max_length=20, choices=PAYMENT_METHOD_CHOICES, default='cod')
@@ -247,14 +259,16 @@ class OrderItem(models.Model):
         on_delete=models.CASCADE,
         related_name='order_items'
     )
+    variant_size = models.ForeignKey(VariantSize, on_delete=models.CASCADE, null=True, blank=True,default=1) 
     quantity = models.PositiveIntegerField(default=1)
     price = models.DecimalField(max_digits=10, decimal_places=2)
     status = models.CharField(max_length=20, choices=ORDER_STATUS_CHOICES, default='pending')
 
 
-
     def __str__(self):
-        return f"{self.quantity} x {self.variant.product.product_name} ({self.variant.size or 'No size'}, {self.variant.color or 'No color'})"
+        size = self.variant_size.size if self.variant_size else 'No size'
+        color = self.variant.color if self.variant else 'No color'
+        return f"{self.quantity} x {self.variant.product.product_name} ({size}, {color})"
 
     @property
     def total_price(self):
@@ -282,7 +296,7 @@ from django.utils import timezone
 
 class Coupon(models.Model):
     # Unique coupon code
-    code = models.CharField(max_length=20, unique=True)
+    code = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     
     # Coupon name (added as per the view)
     name = models.CharField(max_length=100)  

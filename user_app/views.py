@@ -19,7 +19,12 @@ from django.contrib.auth import get_backends
 from .forms import UserLoginForm
 from django.shortcuts import redirect, render
 from django.core.exceptions import ValidationError
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
+from reportlab.lib import colors
 from django.core.validators import EmailValidator
+import re
+
 
 def user_signup(request):
     if request.method == "POST":
@@ -324,10 +329,14 @@ from django.contrib.auth.hashers import make_password
 
 def reset_password(request):
     if request.method == 'POST':
-        new_password = request.POST.get('new_password','').strip()
-        confirm_password = request.POST.get('confirm_password','').strip()
+        new_password = request.POST.get('password','').strip()
+        confirm_password = request.POST.get('re_password','').strip()
         email = request.session.get('email')
 
+        if len(new_password) < 6:
+            messages.error(request, 'Password lenght should by atleast 6')
+            return redirect('reset_password')
+        
         # Validate passwords
         if new_password != confirm_password:
             messages.error(request, 'Passwords do not match.')
@@ -367,7 +376,7 @@ def reset_password(request):
 @cache_control(no_cache=True, no_store=True, must_revalidate=True)
 def homepage(request):
     # Fetch the two most recently added products
-    recent_products = Product.objects.filter(is_delete=False).order_by('-created_at')[:8]
+    recent_products = Product.objects.filter(is_delete=False,category__is_active=True,category__is_delete=False ).order_by('-created_at')[:8]
     products_with_images = []
 
     for product in recent_products:
@@ -406,21 +415,29 @@ def user_logout(request):
 def product_detail(request, product_id):
     # Fetch the product
     product = get_object_or_404(Product.objects.prefetch_related('variants__images'), id=product_id)
-    
 
-    # Get the variant from the query parameters (uses default id field)
-    variant_id = request.GET.get('variant_id')
-    if variant_id:
+    # Get the variant and size from the query parameters
+    variant_id = request.GET.get('variant_id')  # UPDATED
+    size_id = request.GET.get('size_id')  # UPDATED
+
+    if variant_id:  # UPDATED
         try:
-            selected_variant = product.variants.get(id=variant_id)
-            print('selected_variantt:',selected_variant)
+            selected_variant = product.variants.get(id=variant_id)  # UPDATED
         except Variant.DoesNotExist:
-            return HttpResponseNotFound("Variant not found")
+            return HttpResponseNotFound("Variant not found")  # UPDATED
     else:
-        selected_variant = product.variants.first()
+        selected_variant = product.variants.first()  # Default to the first variant if none is selected
+
+    if size_id:  # UPDATED
+        try:
+            selected_size = selected_variant.sizes.get(id=size_id)  # UPDATED
+        except VariantSize.DoesNotExist:
+            selected_size = None  # UPDATED
+    else:
+        selected_size = selected_variant.sizes.first()
 
     # Check if the selected variant is in the wishlist
-    is_in_wishlist = Wishlist.objects.filter(user=request.user, id=selected_variant.id).exists()
+    is_in_wishlist = Wishlist.objects.filter(user=request.user, variant=selected_variant).exists()
 
     # Gather images for the selected variant
     images = selected_variant.images.all() if selected_variant else []
@@ -470,6 +487,7 @@ def product_detail(request, product_id):
         'related_products': related_products,
         'is_in_wishlist': is_in_wishlist,
         'available_sizes': available_sizes,
+        'selected_size': selected_size,
 
     }
     return render(request, 'product_display.html', context)
@@ -525,11 +543,32 @@ def user_profile(request):
             messages.error(request, "You cannot change the email address.")
             return redirect('user_profile')
 
-        if not firstname.strip() or not lastname.strip():
+        # Validate first name and last name (no digits and spaces allowed)
+        if not firstname or not lastname:
             messages.error(request, "First name and last name cannot be empty.")
             return redirect('user_profile')
         
-        if len(phone) != 10 or not phone.isdigit():
+        # Regex to allow only alphabets and spaces, and no numbers
+        if not re.match(r'^[a-zA-Z ]+$', firstname):
+            messages.error(request, "First name can only contain alphabets and spaces.")
+            return redirect('user_profile')
+
+        if not re.match(r'^[a-zA-Z ]+$', lastname):
+            messages.error(request, "Last name can only contain alphabets and spaces.")
+            return redirect('user_profile')
+        # Regex to allow only alphabets (no spaces or digits allowed anywhere in the name)
+        if re.search(r'\s', firstname) or not firstname.isalpha():
+            messages.error(request, "First name can only contain alphabets (no spaces or digits).")
+            return redirect('user_profile')
+
+        if re.search(r'\s', lastname) or not lastname.isalpha():
+            messages.error(request, "Last name can only contain alphabets (no spaces or digits).")
+            return redirect('user_profile')
+        
+        phone_validator = RegexValidator(r'^\d{10}$', "Phone number must be exactly 10 digits.")
+        try:
+            phone_validator(phone)
+        except:
             messages.error(request, "Phone number cannot be empty and must be 10 digits.")
             return redirect('user_profile')
 
@@ -575,50 +614,89 @@ def user_address(request):
         address_type = request.POST.get('addressType', "").strip()
 
         # Check required fields
-        if not all([name, phone_number, address_line, city, pincode, address_type]):
-            messages.error(request,"All required fields must be filled.")
-            return redirect('user_address')
+        errors = {}
 
-        # Maximum length validations
-        if len(name) > 15:
-            messages.error(request,"Name cannot exceed 15 characters.")
-            return redirect('user_address')
-        if len(phone_number) > 10:
-            messages.error(request,"Phone number must be exactly 10 digits.")
-            return redirect('user_address')
-        if len(address_line) > 100:
-            messages.error(request,"Address line cannot exceed 100 characters.")
-            return redirect('user_address')
-        if len(location) > 25:
-            messages.error(request,"Location cannot exceed 20 characters.")
-            return redirect('user_address')
-        if len(landmark) > 25:
-            messages.error(request,"Landmark cannot exceed 25 characters.")
-            return redirect('user_address')
-        if len(city) > 25:
-            messages.error(request,"City name cannot exceed 25 characters.")
-            return redirect('user_address')
-        if len(district) > 20:
-            messages.error(request,"District name cannot exceed 20 characters.")
-            return redirect('user_address')
-        if len(state) > 20:
-            messages.error(request,"State name cannot exceed 20 characters.")
-            return redirect('user_address')
-        if len(pincode) != 6:
-            messages.error(request,"Pincode must be exactly 6 digits.")
-            return redirect('user_address')
-        if len(address_type) > 20:
-            messages.error(request,"Address type cannot exceed 20 characters.")
-            return redirect('user_address')
+        # Check for all blank fields
+        if not any([name, phone_number, address_line, landmark, city, district, state, pincode, address_type]):
+            messages.error(request, "Please fill all the fields.")
+            return render(request, 'week2/address.html', {
+                'addresses': addresses,
+                'edit_address': edit_address,
+                'errors': errors,
+                'fullname': fullname
 
-        # Numeric validations
-        if not phone_number.isdigit():
-            messages.error(request,"Phone number must contain only digits.")
-            return redirect('user_address')
-        if not pincode.isdigit():
-            messages.error(request,"Pincode must contain only digits.")
-            return redirect('user_address')
+            })
 
+        # Field-specific validations
+        if not name:
+            errors['name'] = "Name is required."
+        elif not all(c.isalpha() or c.isspace() for c in name):
+            errors['name'] = "Name must contain only alphabets and spaces."
+
+        elif len(name) > 20:
+            errors['name'] = "Name cannot exceed 20 characters."
+
+        if not phone_number:
+            errors['phone'] = "Phone number is required."
+        elif not phone_number.isdigit() or len(phone_number) != 10:
+            errors['phone'] = "Phone number must be exactly 10 digits."
+
+        if not address_line:
+            errors['address'] = "Address is required."
+        elif not all(c.isalpha() or c.isspace() for c in address_line):
+            errors['address'] = "Address can contain alphabets, numbers, spaces, and characters like commas, periods, and hyphens."
+        elif len(address_line) > 100:
+            errors['address'] = "Address cannot exceed 100 characters."
+
+        if not landmark:
+            errors['landmark'] = "Landmark is required."
+        elif not landmark.replace(" ", "").isalpha():
+            errors['landmark'] = "Landmark must contain only alphabets (spaces allowed)."
+        elif len(landmark) > 25:
+            errors['landmark'] = "Landmark cannot exceed 25 characters."
+
+        if not city:
+            errors['city'] = "City is required."
+        elif not city.isalpha():
+            errors['city'] = "City must contain only alphabets."
+        elif len(city) > 20:
+            errors['city'] = "City cannot exceed 20 characters."
+            
+        if not location:
+            errors['location'] = "Location is required."
+        elif len(city) > 20:
+            errors['location'] = "Location cannot exceed 20 characters."
+
+        if not district:
+            errors['district'] = "District is required."
+        elif not district.isalpha():
+            errors['district'] = "District must contain only alphabets."
+        elif len(district) > 20:
+            errors['district'] = "District cannot exceed 20 characters."
+
+        if not state:
+            errors['state'] = "State is required."
+        elif not state.isalpha():
+            errors['state'] = "State must contain only alphabets."
+        elif len(state) > 20:
+            errors['state'] = "State cannot exceed 20 characters."
+
+        if not pincode:
+            errors['pincode'] = "Pincode is required."
+        elif not pincode.isdigit() or len(pincode) != 6:
+            errors['pincode'] = "Pincode must be exactly 6 digits and numeric."
+
+        if not address_type:
+            errors['address_type'] = "Address type is required."
+
+        # If there are errors, render the page with error messages
+        if errors:
+            return render(request, 'week2/address.html', {
+                'addresses': addresses,
+                'edit_address': edit_address,
+                'errors': errors,
+                'fullname': fullname
+            })
 
         # Save or update the address
         if edit_address:
@@ -717,21 +795,24 @@ def delete_address(request, address_id):
 def add_to_cart(request, product_id):
     if request.method == "POST":
         variant_id = request.POST.get("variant_id")
-        size = request.POST.get("size_id")  # Get the size from the request
+        print('v',variant_id)
+        sizes = request.POST.get("size_id")  # Get the size from the request
+        print('s',sizes)
 
-        if not variant_id or not size:
-            messages.error(request, "Variant and size must be selected.")
-            return redirect("product_detail", product_id=product_id)
 
         # Find the variant
         variant = Variant.objects.filter(product_id=product_id, id=variant_id).first()
 
         if not variant:
             messages.error(request, "Variant not found.")
+            return redirect("product_detail", product_id=variant_id)
+        
+        if not sizes:
+            messages.error(request,"Select size")
             return redirect("product_detail", product_id=product_id)
 
         # Find the size and check stock
-        variant_size = VariantSize.objects.filter(variant=variant, size=size).first()
+        variant_size = VariantSize.objects.filter(variant=variant,id=sizes).first()
 
         if not variant_size:
             messages.error(request, "Selected size not found for this variant.")
@@ -742,7 +823,7 @@ def add_to_cart(request, product_id):
             return redirect("product_detail", product_id=product_id)
 
         cart, created = Cart.objects.get_or_create(user=request.user)
-        cart_item = CartItem.objects.filter(cart=cart, variant=variant, size=size).first()
+        cart_item = CartItem.objects.filter(cart=cart, variant=variant, variant_size=variant_size).first()
 
         if cart_item:
             # Check stock and max quantity constraints
@@ -754,9 +835,8 @@ def add_to_cart(request, product_id):
                 return redirect("product_detail", product_id=product_id)
 
             # Increment the quantity
-            cart_item.quantity += 1
-            cart_item.save()
-            messages.success(request, "Product quantity updated in cart.")
+            cart_item.quantity <= 1
+            messages.error(request, "Product already in cart.")
             return redirect("product_detail", product_id=product_id)
 
         # Add new cart item
@@ -767,8 +847,8 @@ def add_to_cart(request, product_id):
                 cart_item = CartItem.objects.create(
                     cart=cart,
                     variant=variant,
-                    size=size,
-                    price=variant.final_price,
+                    variant_size=variant_size,
+                    price=variant.actual_price,
                     discount=discount,
                     quantity=1
                 )
@@ -779,8 +859,7 @@ def add_to_cart(request, product_id):
         return redirect("product_detail", product_id=product_id)
 
     messages.error(request, "Invalid request method.")
-    return redirect("product_detail", product_id=product_id)
-
+    return redirect("product_detail", product_id=product_id,variant_id=variant_id, size_id=sizes)
 
 
 
@@ -789,7 +868,8 @@ from decimal import Decimal
 @login_required
 def cart_view(request):
     cart, created = Cart.objects.get_or_create(user=request.user)
-    cart_items = CartItem.objects.filter(cart=cart)
+    cart_items = CartItem.objects.filter(cart=cart).order_by('id')
+    print(cart_items)
     total_amount = Decimal(0)
     total_discount = Decimal(0)
 
@@ -805,26 +885,6 @@ def cart_view(request):
 
     # Grand total calculation
     grand_total = total_amount + tax
-    
-    # for item in cart_items:
-    #     # Fetch the product associated with the variant in the cart item
-    #     product = item.variant.product
-
-    #     # Calculate the original price without discount
-    #     original_price = item.quantity * product.price
-
-    #     # Calculate the discount amount for this item (product discount applied)
-    #     discount_amount = (product.discount / Decimal(100)) * original_price
-
-    #     # Add to the total price after discount
-    #     total_amount += original_price - discount_amount
-
-    #     # Add to the total discount
-    #     total_discount += discount_amount
-    
-    # Example tax and shipping calculations
-    # tax = total_amount * Decimal('0.10')
-    # grand_total = total_amount + tax - total_discount
     
     context = {
         "cart": cart,
@@ -854,10 +914,11 @@ def update_cart_item(request, item_id):
         cart_item = CartItem.objects.get(id=item_id)
 
         # Check if the requested quantity exceeds the stock
-        if quantity > cart_item.variant.stock:
-            return JsonResponse({'success': False, 'message': f'Cannot increase quantity above stock. Only {cart_item.variant.stock} items available.'})
+        if quantity > cart_item.variant_size.quantity:
+            return JsonResponse({'success': False, 'message': f'Cannot increase quantity above stock. Only {cart_item.variant_size.quantity} items available.'})
         
         # Max quantity allowed (5)
+
         if quantity > 5:
             return JsonResponse({'success': False, 'message': 'You cannot have more than 5 items of the same product in the cart.'})
 
@@ -893,8 +954,12 @@ from django.db.models import Q
 def shop(request):
     # Get all categories and brands
     categories = categorys.objects.filter(is_active=True, is_delete=False)
-    brands = Product.objects.values_list('brand', flat=True).distinct()
-
+    brands = Product.objects.filter(
+            is_active=True, 
+            is_delete=False, 
+            category__is_active=True,  
+            category__is_delete=False
+        ).values_list('brand', flat=True).distinct()
     # Get filter and sort values from GET request
     selected_category = request.GET.get('category')
     selected_brand = request.GET.get('brand')
@@ -902,8 +967,12 @@ def shop(request):
     search_query = request.GET.get('search', '').strip()
     sort_by = request.GET.get('sort_by')
 
+    if 'search' in request.GET and not search_query:
+        messages.warning(request, "Please enter a search term.")
+        return redirect('shop')
+
     # Filter products based on the selected filters
-    products = Product.objects.filter(is_active=True, is_delete=False)
+    products = Product.objects.filter(is_active=True, is_delete=False,category__is_active=True,category__is_delete=False )
 
     if selected_category:
         products = products.filter(category__id=selected_category)
@@ -925,6 +994,7 @@ def shop(request):
         products = products.filter(
             Q(product_name__icontains=search_query) | Q(description__icontains=search_query)
         )
+
 
     # Sorting options
     if sort_by == 'price_low_to_high':
@@ -986,7 +1056,7 @@ def checkout_address(request):
     # Calculate total amount using the variant price
     for item in cart_items:
         # Fetch the price directly from the variant table
-        variant_price = Decimal(item.variant.price)  # Assuming 'price' is a field in the Variant table
+        variant_price = Decimal(item.variant.actual_price)  # Assuming 'price' is a field in the Variant table
         item_total = variant_price * Decimal(item.quantity)  # Calculate total price for the item
         total_amount += item_total  # Add to the total amount
 
@@ -995,6 +1065,9 @@ def checkout_address(request):
 
     # Grand total calculation (total amount + tax)
     grand_total = total_amount + tax
+    if not cart_items.exists():
+        messages.error(request, "Your cart is empty. Please add items before proceeding to checkout.")
+        return redirect('cart_view')
     
     context = {
         'addresses': addresses,
@@ -1008,21 +1081,43 @@ def checkout_address(request):
     return render(request, 'week2/checkout_address.html', context)
 
 
-
-
-
 @login_required
-def add_address_checkout(request):  
+def add_address_checkout(request):
     user = request.user
     addresses = Address.objects.filter(user=user)  
+    addresses = Address.objects.filter(user=user)  
+     # Get the user's full name
+    fullname = f"{user.firstname} {user.lastname}".strip()
+    addresses = Address.objects.filter(user=user)
      # Get the user's full name
     fullname = f"{user.firstname} {user.lastname}".strip()
 
     edit_address = None
     edit_id = request.GET.get('edit') 
+    edit_id = request.GET.get('edit') 
+    print('edit ',edit_id)
+    edit_id = request.GET.get('edit')
     print('edit ',edit_id)
     if edit_id:
         edit_address = get_object_or_404(Address, id=edit_id, user=user)
+    
+    cart, created = Cart.objects.get_or_create(user=request.user)
+    cart_items = CartItem.objects.filter(cart=cart)
+    total_amount = Decimal(0)
+
+    # Calculate total amount using the variant price
+    for item in cart_items:
+        # Fetch the price directly from the variant table
+        variant_price = Decimal(item.variant.actual_price)  # Assuming 'price' is a field in the Variant table
+        item_total = variant_price * Decimal(item.quantity)  # Calculate total price for the item
+        total_amount += item_total  # Add to the total amount
+
+    # Tax calculation (10% of total amount)
+    tax = total_amount * Decimal('0.10')
+
+    # Grand total calculation (total amount + tax)
+    grand_total = total_amount + tax
+    
 
     if request.method == 'POST':
         name = request.POST.get('name', "").strip()
@@ -1037,49 +1132,97 @@ def add_address_checkout(request):
         address_type = request.POST.get('addressType', "").strip()
 
         # Check required fields
-        if not all([name, phone_number, address_line, city, pincode, address_type]):
-            messages.error(request,"All required fields must be filled.")
-            return redirect('checkout_address')
+        errors = {}
 
-        # Maximum length validations
-        if len(name) > 15:
-            messages.error(request,"Name cannot exceed 15 characters.")
-            return redirect('checkout_address')
-        if len(phone_number) > 10:
-            messages.error(request,"Phone number must be exactly 10 digits.")
-            return redirect('checkout_address')
-        if len(address_line) > 100:
-            messages.error(request,"Address line cannot exceed 100 characters.")
-            return redirect('checkout_address')
-        if len(location) > 25:
-            messages.error(request,"Location cannot exceed 20 characters.")
-            return redirect('checkout_address')
-        if len(landmark) > 25:
-            messages.error(request,"Landmark cannot exceed 25 characters.")
-            return redirect('checkout_address')
-        if len(city) > 25:
-            messages.error(request,"City name cannot exceed 25 characters.")
-            return redirect('checkout_address')
-        if len(district) > 20:
-            messages.error(request,"District name cannot exceed 20 characters.")
-            return redirect('checkout_address')
-        if len(state) > 20:
-            messages.error(request,"State name cannot exceed 20 characters.")
-            return redirect('checkout_address')
-        if len(pincode) != 6:
-            messages.error(request,"Pincode must be exactly 6 digits.")
-            return redirect('checkout_address')
-        if len(address_type) > 20:
-            messages.error(request,"Address type cannot exceed 20 characters.")
-            return redirect('checkout_address')
+        # Check for all blank fields
+        if not any([name, phone_number, address_line, landmark, city, district, state, pincode, address_type]):
+            messages.error(request, "Please fill all the fields.")
+            return render(request, 'week2/checkout_address.html', {
+                'addresses': addresses,
+                'edit_address': edit_address,
+                'errors': errors,
+                "cart": cart,
+                "cart_items": cart_items,
+                "total": total_amount,
+                "tax": tax,
+                "grand_total": grand_total,
 
-        # Numeric validations
-        if not phone_number.isdigit():
-            messages.error(request,"Phone number must contain only digits.")
-            return redirect('checkout_address')
-        if not pincode.isdigit():
-            messages.error(request,"Pincode must contain only digits.")
-            return redirect('checkout_address')
+            })
+
+        # Field-specific validations
+        if not name:
+            errors['name'] = "Name is required."
+        elif not all(c.isalpha() or c.isspace() for c in name):
+            errors['name'] = "Name must contain only alphabets and spaces."
+
+        elif len(name) > 20:
+            errors['name'] = "Name cannot exceed 20 characters."
+
+        if not phone_number:
+            errors['phone'] = "Phone number is required."
+        elif not phone_number.isdigit() or len(phone_number) != 10:
+            errors['phone'] = "Phone number must be exactly 10 digits."
+
+        # if not address_line:
+        #     errors['address'] = "Address is required."
+        # elif not re.match(r'^[a-zA-Z0-9\s,.-]+$', address_line):
+        #     errors['address'] = "Address can contain alphabets, numbers, spaces, and characters like commas, periods, and hyphens."
+        # elif len(address_line) > 100:
+        #     errors['address'] = "Address cannot exceed 100 characters."
+
+        if not landmark:
+            errors['landmark'] = "Landmark is required."
+        elif not landmark.replace(" ", "").isalpha():
+            errors['landmark'] = "Landmark must contain only alphabets (spaces allowed)."
+        elif len(landmark) > 25:
+            errors['landmark'] = "Landmark cannot exceed 25 characters."
+
+        if not city:
+            errors['city'] = "City is required."
+        elif not city.isalpha():
+            errors['city'] = "City must contain only alphabets."
+        elif len(city) > 20:
+            errors['city'] = "City cannot exceed 20 characters."
+            
+        if not location:
+            errors['location'] = "Location is required."
+        elif len(city) > 20:
+            errors['location'] = "Location cannot exceed 20 characters."
+
+        if not district:
+            errors['district'] = "District is required."
+        elif not district.isalpha():
+            errors['district'] = "District must contain only alphabets."
+        elif len(district) > 20:
+            errors['district'] = "District cannot exceed 20 characters."
+
+        if not state:
+            errors['state'] = "State is required."
+        elif not state.isalpha():
+            errors['state'] = "State must contain only alphabets."
+        elif len(state) > 20:
+            errors['state'] = "State cannot exceed 20 characters."
+
+        if not pincode:
+            errors['pincode'] = "Pincode is required."
+        elif not pincode.isdigit() or len(pincode) != 6:
+            errors['pincode'] = "Pincode must be exactly 6 digits and numeric."
+
+        if not address_type:
+            errors['address_type'] = "Address type is required."
+
+        # If there are errors, render the page with error messages
+        if errors:
+            return render(request, 'week2/checkout_address.html', {
+                'addresses': addresses,
+                'edit_address': edit_address,
+                'errors': errors,
+                "cart": cart,
+                "cart_items": cart_items,
+                "total": total_amount,
+                "tax": tax,
+                "grand_total": grand_total,
+            })
 
 
         # Save or update the address
@@ -1112,11 +1255,15 @@ def add_address_checkout(request):
             )
             messages.success(request, "Address added successfully.")
 
-
-    return render(request, 'week2/checkout_address.html', {'addresses': addresses, 'edit_address': edit_address, 'fullname': fullname})
-
-
-
+    return render(request, 'week2/checkout_address.html', {
+        'addresses': addresses,
+        'edit_address': edit_address,
+        "cart": cart,
+        "cart_items": cart_items,
+        "total": total_amount,
+        "tax": tax,
+        "grand_total": grand_total,
+    })
 
 
 def select_address(request):
@@ -1129,8 +1276,6 @@ def select_address(request):
         return redirect('order_summary')
     
     return render(request, 'checkout/select_address.html', {'addresses': user_addresses})
-
-
 
 
 
@@ -1153,28 +1298,44 @@ def order_summary(request):
     
     # **Update**: Calculate total amount using the variant price
     total_amount = sum(
-        Decimal(item.variant.price) * Decimal(item.quantity) for item in cart_items
+        Decimal(item.variant.actual_price) * Decimal(item.quantity) for item in cart_items
     )
     
-    # Fetch applied coupon
-    applied_coupon = cart.coupon if cart.coupon else None
+     # Initialize variables for coupon discount
+    applied_coupon_code = request.session.get('applied_coupon_code')  # Fetch the coupon code from the session
     coupon_discount = Decimal(0)
+    applied_coupon = None
+    if applied_coupon_code:  # Check if a coupon code is applied
+        try:
+            # Fetch the coupon from the database
+            applied_coupon = Coupon.objects.get(
+                code=applied_coupon_code, is_active=True, is_delete=False
+            )
+            
+            # Validate the coupon
+            if not applied_coupon.is_valid():
+                del request.session['applied_coupon_code']  # Remove invalid coupon from session
+                messages.error(request, "The applied coupon is no longer valid.")
+            else:
+                # Calculate discount
+                if applied_coupon.discount_type == 'percentage':
+                    coupon_discount = (total_amount * applied_coupon.discount_value) / Decimal(100)
+                else:
+                    coupon_discount = applied_coupon.discount_value
 
-    # **Update**: Check and calculate coupon discount
-    if applied_coupon and applied_coupon.is_valid():
-        if applied_coupon.discount_type == 'percentage':
-            coupon_discount = total_amount * (applied_coupon.discount_value / Decimal(100))
-        else:  # Fixed amount discount
-            coupon_discount = applied_coupon.discount_value
+                coupon_discount = min(coupon_discount, total_amount)  # Prevent over-discount
+                total_amount -= coupon_discount  # Apply the discount
+                
+                # Update coupon usage
+                applied_coupon.used_count += 1
+                applied_coupon.save()
+                print(f"Coupon {applied_coupon.name} applied successfully!")
+        
+        except Coupon.DoesNotExist:
+            # Handle invalid coupon code
+            del request.session['applied_coupon_code']
+            messages.error(request, "The applied coupon is invalid.")
 
-        # Ensure the discount does not exceed the total amount
-        coupon_discount = min(coupon_discount, total_amount)
-        total_amount -= coupon_discount  # Deduct the coupon discount from the total amount
-        cart.total_discount = coupon_discount  # **Update**: Save the discount to the cart
-        cart.save()
-    else:
-        cart.total_discount = Decimal(0)  # **Update**: Reset the discount if no valid coupon
-        cart.save()
 
     # Tax calculation (10% of the discounted amount)
     tax = total_amount * Decimal('0.10')
@@ -1201,7 +1362,6 @@ def order_summary(request):
                 if eval(condition, {"__builtins__": None}, context):
                     available_coupons.append(coupon)
             else:
-                # If no condition is specified, consider it valid
                 available_coupons.append(coupon)
         except Exception as e:
             logger.error(f"Error evaluating coupon {coupon.code}: {e}")
@@ -1212,8 +1372,9 @@ def order_summary(request):
         return redirect('checkout_address')
 
     selected_address = Address.objects.get(id=selected_address_id, user=request.user)
-    wallet = get_object_or_404(Wallet, user=request.user)
+    wallet, created = Wallet.objects.get_or_create(user=request.user)
     order = None  # Initialize the order variable
+
 
     if request.method == 'POST':
         payment_method = request.POST.get('payment_method', 'cod')
@@ -1245,23 +1406,27 @@ def order_summary(request):
                     for item in cart_items:
 
                         # Reduce stock quantity
-                        variant = item.variant
-                        if variant.stock >= item.quantity:
-                            variant.stock -= item.quantity
-                            variant.save()
+                        variant_size = item.variant_size
+                        if variant_size.quantity >= item.quantity:
+                            variant_size.quantity -= item.quantity
+                            variant_size.save()
                         else:
-                            messages.error(request, f"Insufficient stock for {variant.name}.")
+                            messages.error(request, f"Insufficient stock.")
                             return redirect('order_summary')
                         
                         OrderItem.objects.create(
                             order=order,
                             variant=item.variant,
                             quantity=item.quantity,
-                            price=item.variant.price,
+                            price=item.variant.actual_price,
+                            variant_size=item.variant_size
                         )
 
                     # Clear the cart items after the order is placed
                     cart_items.delete()
+                    if 'applied_coupon_code' in request.session:
+                        del request.session['applied_coupon_code']
+
 
                     messages.success(request, "Order placed successfully using wallet balance!")
                     return redirect('order_success')
@@ -1309,23 +1474,27 @@ def order_summary(request):
             for item in cart_items:
 
                 # Reduce stock quantity
-                variant = item.variant
-                if variant.stock >= item.quantity:
-                    variant.stock -= item.quantity
-                    variant.save()
+                variant_size = item.variant_size
+                if variant_size.quantity >= item.quantity:
+                    variant_size.quantity -= item.quantity
+                    variant_size.save()
                 else:
-                    messages.error(request, f"Insufficient stock for {variant.name}.")
+                    messages.error(request, f"Insufficient stock.")
                     return redirect('order_summary')
                 
                 OrderItem.objects.create(
                     order=order,
                     variant=item.variant,
                     quantity=item.quantity,
-                    price=item.variant.price,
+                    price=item.variant.actual_price,
+                    variant_size=item.variant_size
                 )
 
             # Clear the cart items after the order is placed
             cart_items.delete()
+            if 'applied_coupon_code' in request.session:
+                del request.session['applied_coupon_code']
+
 
             # Pass Razorpay order ID to the frontend
             context = {
@@ -1340,6 +1509,7 @@ def order_summary(request):
                 'available_coupons': available_coupons,
                 'wallet': wallet,
                 'order': order,
+                'coupon': applied_coupon, 
             }
 
             return render(request, 'week2/razorpay.html', context)
@@ -1347,6 +1517,9 @@ def order_summary(request):
 
         # Handle other payment methods (e.g., COD)
         else:
+            if payment_method == 'cod' and grand_total > 1000:
+                messages.error(request, "COD is not available for orders above ₹1000. Please select another payment method.")
+                return redirect('order_summary')
             with transaction.atomic():
                 # Create the order
                 order = Order.objects.create(
@@ -1361,27 +1534,32 @@ def order_summary(request):
                 for item in cart_items:
 
                     # Reduce stock quantity
-                    variant = item.variant
-                    if variant.stock >= item.quantity:
-                        variant.stock -= item.quantity
-                        variant.save()
+                    variant_size = item.variant_size
+                    if variant_size.quantity >= item.quantity:
+                        variant_size.quantity -= item.quantity
+                        variant_size.save()
                     else:
-                        messages.error(request, f"Insufficient stock for {variant.name}.")
+                        messages.error(request, f"Insufficient stock.")
                         return redirect('order_summary')
 
                     OrderItem.objects.create(
                         order=order,
                         variant=item.variant,
                         quantity=item.quantity,
-                        price=item.variant.price,
+                        price=item.variant.actual_price,
+                        variant_size=item.variant_size
                     )
 
                 # Clear the cart items after the order is placed
                 cart_items.delete()
+                if 'applied_coupon_code' in request.session:
+                    del request.session['applied_coupon_code']
+
+
 
                 messages.success(request, 'Your order has been placed successfully!')
                 return redirect('order_success')
-
+    
     # Pass the order object to the context
     context = {
         'cart_items': cart_items,
@@ -1394,6 +1572,7 @@ def order_summary(request):
         'available_coupons': available_coupons,
         'wallet': wallet,
         'order': order,
+        'coupon': applied_coupon, 
     }
 
     return render(request, 'week2/order_summary.html', context)
@@ -1402,11 +1581,6 @@ def order_summary(request):
 
 
 
-from django.conf import settings
-from django.http import HttpResponse, JsonResponse
-from django.shortcuts import redirect
-from django.views.decorators.csrf import csrf_exempt
-from django.contrib import messages
 import razorpay
 import logging
 
@@ -1425,7 +1599,7 @@ def razorpay_callback(request):
         if not all([payment_id, razorpay_order_id, signature]):
             logger.error("Missing required Razorpay parameters.")
             messages.error(request, "Invalid payment details received.")
-            return redirect('orders:order-failure')
+            return redirect('order_failure')
 
         try:
             # Retrieve the associated order
@@ -1445,64 +1619,36 @@ def razorpay_callback(request):
 
             logger.info(f"Payment successful for order ID: {order.id}")
             messages.success(request, "Payment successful and order confirmed!")
-            return redirect('payment_success', order_id=order.id)
+            return redirect('order_success')
 
         except Order.DoesNotExist:
             logger.error(f"Order with Razorpay Order ID: {razorpay_order_id} does not exist.")
             messages.error(request, "Order does not exist.")
-            return redirect('orders:order-failure')
+            return redirect('order_failure')
 
         except razorpay.errors.SignatureVerificationError as e:
             logger.error(f"Signature verification failed for payment ID: {payment_id}. Error: {str(e)}")
             messages.error(request, "Payment verification failed.")
-            return redirect('orders:order-failure')
+            return redirect('order_failure')
 
         except Exception as e:
             logger.error(f"Unexpected error occurred: {str(e)}")
             messages.error(request, "An unexpected error occurred. Please try again.")
-            return redirect('orders:order-failure')
+            return redirect('order_failure')
 
     else:
         logger.error("Invalid request method for Razorpay callback.")
         return HttpResponse("Invalid request method.", status=400)
 
-
-
-
-
-# import razorpay
-# def create_payment_order(amount):
-#     client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
-#     data = {
-#         'amount': amount * 100,  # Amount in paise
-#         'currency': 'INR',
-#         'payment_capture': '1',
-#     }
-#     response = client.order.create(data=data)
-#     return response['id']
-
-
-# def payment_view(request):
-#     if request.method == 'POST':
-#         payment_method = request.POST.get('payment_method')
-#         if payment_method == 'razorpay':
-#             amount = 100  # Set the amount dynamically or based on your requirements
-#             order_id = create_payment_order(amount)
-#             context = {
-#                 'order_id': order_id,
-#                 'amount': amount
-#             }
-#             return render(request, 'payment.html', context)
-#         else:
-#             # Handle other payment methods
-#             pass
-#     else:
-#         return render(request, 'order_summary.html')
     
 
 def payment_success(request):
 
     return render(request, 'payment_success.html')
+
+
+def order_failure(request):
+    return render(request,'payment_success.html')
 
 
 from django.utils.timezone import now
@@ -1512,58 +1658,54 @@ import logging
 
 # Initialize logger
 logger = logging.getLogger(__name__)
-
 @login_required
 def apply_coupon(request):
     if request.method == "POST":
         coupon_code = request.POST.get('coupon_code', '').strip()
 
         try:
-            # Fetch the coupon and validate its status
             coupon = Coupon.objects.get(code=coupon_code, is_active=True, is_delete=False)
 
-            # Check if the coupon is valid using the `is_valid()` method
             if not coupon.is_valid():
-                messages.error(request, "This coupon is expired or has reached its maximum usage.")
-                return redirect('order_summary')
+                return JsonResponse({'success': False, 'message': "This coupon is expired or invalid."})
 
-            # Fetch the user's cart
-            cart, created = Cart.objects.get_or_create(user=request.user)
+            cart = Cart.objects.get(user=request.user)
+            cart_items = CartItem.objects.filter(cart=cart)
+            cart_total = sum(item.variant.actual_price * item.quantity for item in cart_items)
 
-            # Check if the coupon meets the minimum purchase requirement (if any)
-            cart_total = sum(item.variant.price * item.quantity for item in CartItem.objects.filter(cart=cart))
             if cart_total < coupon.offer_rate:
-                messages.error(request, f"This coupon requires a minimum purchase of ₹{coupon.offer_rate}.")
-                return redirect('order_summary')
+                return JsonResponse({'success': False, 'message': f"This coupon requires a minimum purchase of ₹{coupon.offer_rate}."})
 
-            # Apply the coupon to the cart
-            cart.coupon = coupon  # **Updated: Save coupon to cart**
-            cart.save()
+            # Calculate the discount
+            discount = 0
+            if coupon.discount_type == 'percentage':
+                discount = (cart_total * coupon.discount_value) / 100
+            else:
+                discount = coupon.discount_value
 
-            # Update the coupon's usage count
-            coupon.used_count += 1
-            coupon.save()
+            discount = min(discount, cart_total)  # Ensure discount does not exceed the total amount
+            grand_total = cart_total - discount + (cart_total - discount) * Decimal('0.10')  # Add 10% tax
 
-            # Recalculate the total discount after applying the coupon
-            total_discount = cart.calculate_discount()  # Assuming `calculate_discount()` is a method in your Cart model
-            cart.total_discount = total_discount
-            cart.save()
+            # Store the coupon in the session
+            request.session['applied_coupon_code'] = coupon_code
 
-            messages.success(request, f"Coupon '{coupon.code}' applied successfully! Discount: ₹{coupon.discount_value}")
+            return JsonResponse({
+                'success': True,
+                'message': "Coupon applied successfully!",
+                'total': float(cart_total),
+                'coupon_discount': float(discount),
+                'grand_total': float(grand_total),
+            })
+
         except Coupon.DoesNotExist:
-            messages.error(request, "Invalid or expired coupon code.")
-        except Exception as e:
-            logger.error(f"Error applying coupon: {e}")  # **Updated: Added logging for coupon application errors**
-            messages.error(request, "An error occurred while applying the coupon. Please try again.")
-    
-    return redirect('order_summary')
+            return JsonResponse({'success': False, 'message': "Invalid or expired coupon code."})
+
+    return JsonResponse({'success': False, 'message': "Invalid request."})
 
 
 
 def order_success(request):
     return render(request, 'week2/order_success.html')
-
-
 
 
 
@@ -1593,71 +1735,165 @@ def user_order_items(request):
     return render(request, 'week2/order_item.html', context)
 
 
-
 @login_required
 def cancel_order_item(request, item_id):
     order_item = get_object_or_404(OrderItem, id=item_id, order__user=request.user)
+
     if order_item.status not in ['delivered', 'canceled']:
-        order_item.status = 'canceled'
-        order_item.save()
+        try:
+            with transaction.atomic():
+                order_item.status = 'canceled'
+                order_item.save()
 
-        variant = order_item.variant
-        variant.stock = F('stock') + order_item.quantity  # Use F expression for atomic update
-        variant.save()
-        variant.refresh_from_db()
+                # Calculate the refund amount for the canceled item
+                refund_amount = order_item.price * order_item.quantity
+                # Apply 10% tax
+                refund_amount_with_tax = refund_amount + (refund_amount * Decimal('0.10'))
 
-        messages.success(request, "Order item canceled successfully.")
+                # Get the order payment method
+                payment_method = order_item.order.payment_method
+
+                if payment_method in ['wallet', 'razorpay']:
+                    # Handle wallet or razorpay refunds
+                    coupon_code = request.session.get('applied_coupon_code')
+                    if coupon_code:
+                        try:
+                            coupon = Coupon.objects.get(code=coupon_code, is_active=True, is_delete=False)
+
+                            if coupon.discount_type == 'percentage':
+                                # Calculate the discount based on the percentage
+                                cart_total = sum(item.variant.actual_price * item.quantity for item in CartItem.objects.filter(cart=order_item.order.cart))
+                                discount = (cart_total * coupon.discount_value) / 100
+                            else:
+                                # Fixed discount
+                                discount = coupon.discount_value
+
+                            # Adjust the refund amount by subtracting the coupon discount from the refund amount
+                            refund_amount_with_tax -= discount
+                        except Coupon.DoesNotExist:
+                            logger.warning(f"Invalid or expired coupon code {coupon_code} used.")
+                    
+                    # Add the refund amount to the user's wallet if the payment was through wallet or razorpay
+                    wallet = order_item.order.user.wallet
+                    wallet.balance += refund_amount_with_tax
+                    wallet.save()
+
+                    # Create a transaction record for the refund
+                    Transaction.objects.create(
+                        wallet=wallet,
+                        amount=refund_amount_with_tax,
+                        transaction_type='credit',
+                        description=f"Refund for canceled order item {order_item.id}"
+                    )
+
+                    messages.success(request, "Order item canceled and refund processed successfully.")
+                else:
+                    # No refund necessary for COD
+                    messages.success(request, "Order item canceled (COD payment, no refund required).")
+
+                # Update the stock
+                variant_size = VariantSize.objects.filter(
+                    variant=order_item.variant,
+                    size=order_item.variant_size.size
+                ).first()
+
+                if variant_size:
+                    variant_size.quantity = F('quantity') + order_item.quantity
+                    variant_size.save()
+
+        except Exception as e:
+            messages.error(request, f"An error occurred while canceling the order item: {str(e)}")
     else:
-        messages.error(request, "Order item cannot be canceled.")
+        messages.error(request, "This order item cannot be canceled (already delivered or canceled).")
+
     return redirect('user_order_items')
 
+from django.db.models import F
 
-
-
-from django.contrib import messages
-
-from django.db.models import F  # Make sure to import F
+logger = logging.getLogger(__name__)  # Initialize Logger
 
 @login_required
 def return_order_item(request, item_id):
     order_item = get_object_or_404(OrderItem, id=item_id, order__user=request.user)
     
     if order_item.status == 'delivered':
-        # Update the order item status to 'returned'
-        order_item.status = 'returned'
-        order_item.save()
+        try:
+            with transaction.atomic():
+                order_item.status = 'returned'
+                order_item.save()
 
-        variant = order_item.variant
-        variant.stock = F('stock') + order_item.quantity  # Use F expression for atomic update
-        variant.save()
+                # Update stock quantity
+                variant_size = VariantSize.objects.filter(
+                    variant=order_item.variant,
+                    size=order_item.variant_size.size  
+                ).first()
 
-        variant.refresh_from_db()
+                if variant_size:
+                    variant_size.quantity = F('quantity') + order_item.quantity
+                    variant_size.save()
+                else:
+                    messages.error(request, "Related stock not found. Could not update the stock.")
 
+                # Calculate refund amount
+                base_refund_amount = order_item.total_price
+                tax = base_refund_amount * Decimal('0.10')  # 10% tax
+                final_refund_amount = base_refund_amount + tax
 
-        # Get the wallet of the user
-        wallet = Wallet.objects.get(user=request.user)
+                # Check if a coupon was used
+                coupon_code = request.session.get('applied_coupon_code')
+                coupon_amount = Decimal('0.00')
 
-        # Update the wallet balance using F expression (atomically)
-        wallet.balance = F('balance') + order_item.total_price
-        wallet.save()
+                if coupon_code:
+                    try:
+                        coupon = Coupon.objects.get(code=coupon_code, is_active=True, is_delete=False)
 
-        # Refresh the wallet object to get the updated balance in memory
-        wallet.refresh_from_db()
+                        # Check if coupon is still applicable
+                        remaining_order_items = OrderItem.objects.filter(order=order_item.order, status='delivered').exclude(id=order_item.id)
+                        remaining_cart_total = sum(item.total_price for item in remaining_order_items)
 
-        # Create a transaction record for the refund (credit)
-        Transaction.objects.create(
-            wallet=wallet,
-            amount=order_item.total_price,
-            transaction_type='credit',  # Refund is a credit
-            description=f"Refund for Order Item {order_item.id}"
-        )
+                        if remaining_cart_total < coupon.offer_rate:
+                            # Coupon is no longer valid after return, so refund the coupon amount
+                            if coupon.discount_type == 'percentage':
+                                coupon_amount = (order_item.order.total_amount * coupon.discount_value) / 100
+                            else:
+                                coupon_amount = coupon.discount_value
 
-        messages.success(request, "Your order has been returned, and the amount has been added to your wallet.")
+                            final_refund_amount += coupon_amount  # Add coupon amount to refund
+
+                            # Remove coupon from session
+                            del request.session['applied_coupon_code']
+
+                    except Coupon.DoesNotExist:
+                        messages.warning(request, "Coupon used in this order is invalid or expired.")
+
+                # Process refund by adding amount to user's wallet
+                try:
+                    wallet = Wallet.objects.get(user=request.user)
+                except Wallet.DoesNotExist:
+                    messages.error(request, "Wallet not found for the user.")
+                    return redirect('user_order_items')
+
+                wallet.balance = F('balance') + final_refund_amount
+                wallet.save()
+                wallet.refresh_from_db()
+
+                # Log transaction
+                Transaction.objects.create(
+                    wallet=wallet,
+                    amount=final_refund_amount,
+                    transaction_type='credit',
+                    description=f"Refund for returned order item {order_item.id} (Incl. tax + Coupon Adjustment)"
+                )
+
+                messages.success(request, f"Your order has been returned, and ₹{final_refund_amount} has been added to your wallet.")
+
+        except Exception as e:
+            logger.error(f"Error processing return for order item {item_id}: {e}")
+            messages.error(request, f"An error occurred while processing the return: {e}")
     else:
         messages.error(request, "Only delivered orders can be returned.")
     
     return redirect('user_order_items')
-
 
 
 
@@ -1666,11 +1902,13 @@ def wallet_view(request):
     user = request.user
     wallet, created = Wallet.objects.get_or_create(user=request.user)
     fullname = f"{user.firstname} {user.lastname}".strip()
+    print('wallet',wallet.balance)
 
     if created:
         messages.success(request, "Your wallet has been created!")
     
     transactions = wallet.transactions.order_by('-date')
+    print('transactions',transactions)
 
     context = {
         'wallet': wallet,
@@ -1681,31 +1919,60 @@ def wallet_view(request):
 
 
 
+from django.shortcuts import redirect, render
+from django.contrib.auth.decorators import login_required
+from django.db.models import F
+from django.contrib import messages
+from django.shortcuts import redirect, render
+from django.contrib.auth.decorators import login_required
+from django.db.models import F
+from django.contrib import messages
+
 @login_required
 def add_to_wallet(request):
     if request.method == 'POST':
         try:
-            data = json.loads(request.body)
-            amount = float(data.get('amount'))
+            amount = float(request.POST.get('amounts', 0))
+            # Check if the amount is greater than ₹5000
+            if amount > 5000:
+                return JsonResponse({"success": False, "error": "You cannot add more than ₹5000 to your wallet in a single transaction."})
             if amount > 0:
                 wallet, created = Wallet.objects.get_or_create(user=request.user)
                 wallet.balance = F('balance') + amount
                 wallet.save()
-                wallet.refresh_from_db()  # To get the updated balance
-                
-                # Add a transaction record
-                Transaction.objects.create(
-                    wallet=wallet,
-                    amount=amount,
-                    transaction_type='credit',
-                    description="User added funds"
-                )
-                return JsonResponse({'success': True, 'new_balance': wallet.balance})
+                return JsonResponse({"success": True, "message": f"₹{amount} added to your wallet successfully!"})
             else:
-                return JsonResponse({'success': False, 'error': "Amount should be greater than 0."})
-        except (ValueError, json.JSONDecodeError):
-            return JsonResponse({'success': False, 'error': "Invalid amount."})
-    return JsonResponse({'success': False, 'error': "Invalid request method."})
+                return JsonResponse({"success": False, "error": "Please enter a valid amount greater than 0."})
+        except ValueError:
+            return JsonResponse({"success": False, "error": "Invalid input. Please enter a valid numeric value."})
+    return JsonResponse({"success": False, "error": "Invalid request method."})
+
+
+
+
+    #     try:
+    #         data = json.loads(request.body)
+    #         amount = float(data.get('amount'))
+    #         print(amount)
+    #         if amount > 0:
+    #             wallet, created = Wallet.objects.get_or_create(user=request.user)
+    #             wallet.balance = F('balance') + amount
+    #             wallet.save()
+    #             wallet.refresh_from_db()  # To get the updated balance
+                
+    #             # Add a transaction record
+    #             Transaction.objects.create(
+    #                 wallet=wallet,
+    #                 amount=amount,
+    #                 transaction_type='credit',
+    #                 description="User added funds"
+    #             )
+    #             return JsonResponse({'success': True, 'new_balance': wallet.balance})
+    #         else:
+    #             return JsonResponse({'success': False, 'error': "Amount should be greater than 0."})
+    #     except (ValueError, json.JSONDecodeError):
+    #         return JsonResponse({'success': False, 'error': "Invalid amount."})
+    # return JsonResponse({'success': False, 'error': "Invalid request method."})
 
 
 
@@ -1805,49 +2072,36 @@ def place_order(request):
     else:
         return JsonResponse({'success': False, 'error': 'Insufficient funds'})
 
-#     # Fetch the order based on the order_id (ensure it's for the logged-in user)
-#     order = Order.objects.get(id=order_id, user=request.user)
-    
-#     # Fetch the order items related to this order
-#     order_items = OrderItem.objects.filter(order=order)
-    
-#     # Calculate total price for the order
-#     total = sum(item.total_price for item in order_items)
-#     total_discount = sum(item.variant.product.discount * item.quantity for item in order_items)
-
-#     # Example tax and grand total
-#     tax = total * 0.10  # 10% tax
-#     grand_total = total + tax
-    
-#     context = {
-#         'order': order,
-#         'order_items': order_items,
-#         'total': total,
-#         'total_discount': total_discount,
-#         'tax': tax,
-#         'grand_total': grand_total,
-#     }
-
-#     return render(request, 'week2/order_item.html', context)
-
-
 @login_required
 def wishlist_view(request):
     user = request.user
-    fullname = f"{request.user.first_name} {request.user.last_name}".strip()
+    fullname = f"{user.firstname} {user.lastname}".strip()
     
     # Fetch wishlist items with related variants, products, and images
-    wishlist_items = Wishlist.objects.filter(user=user).select_related('variant__product').prefetch_related('variant__images').order_by('-added_at')
-    
-    wishlist_with_images = []
-    for item in wishlist_items:
-        variant = item.variant
-        # Use .first() to handle cases where there are no images for the variant
-        first_image = variant.images.first() if variant.images.exists() else None
-        wishlist_with_images.append({'wishlist_item': item, 'image': first_image})
-    
-    return render(request, 'week3/wishlist.html', {'wishlist_items': wishlist_with_images, 'fullname': fullname})
+    wishlist_items = Wishlist.objects.filter(user=user).select_related(
+        'variant__product'
+    ).prefetch_related(
+        'variant__images'
+    ).order_by('-added_at')
 
+    # Process wishlist items with images
+    wishlist_with_images = [
+        {
+            'wishlist_item': item,
+            'image': item.variant.images.first()  # Get first image directly
+        }
+        for item in wishlist_items
+    ]
+    
+    # Pagination: 5 items per page (you can adjust this)
+    paginator = Paginator(wishlist_with_images, 5)  
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    return render(request, 'week3/wishlist.html', {
+        'wishlist_items': page_obj,
+        'fullname': fullname
+    })
 
 
 @login_required
@@ -1856,13 +2110,112 @@ def add_to_wishlist(request, variant_id):
     
     # Ensure the variant is only added once per user
     wishlist_item, created = Wishlist.objects.get_or_create(user=request.user, variant=variant)
+    if created:
+        messages.success(request, f"Added '{variant.product.product_name}' to your wishlist.")
+    else:
+        messages.info(request, f"'{variant.product.product_name}' is already in your wishlist.")
+
     
-    # You may want to redirect back to the product detail page after adding to the wishlist
+    # Redirect back to the product detail page
     return redirect('product_detail', product_id=variant.product.id)
 
 @login_required
-def remove_from_wishlist(request,id):
-    """View to remove a product from the user's wishlist."""
-    variant = get_object_or_404(Variant, id=id)
-    Wishlist.objects.filter(user=request.user, variant=variant).delete() 
-    return redirect('product_detail',product_id=variant.product.id)
+def remove_from_wishlist(request, variant_id):
+    variant = get_object_or_404(Variant, id=variant_id)
+    Wishlist.objects.filter(user=request.user, variant=variant).delete()
+    messages.success(request, f"Removed '{variant.product.product_name}' from your wishlist.")
+
+    return redirect('product_detail', product_id=variant.product.id)
+
+
+def generate_invoice(request, order_id):
+    # Get the order details
+    order = get_object_or_404(Order, id=order_id)
+
+    # Create a response object with content-type 'application/pdf'
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="invoice_{order.id}.pdf"'
+
+    # Create the PDF object
+    p = canvas.Canvas(response, pagesize=letter)
+    width, height = letter
+
+    # Add header (Invoice Title)
+    p.setFont("Helvetica-Bold", 18)
+    p.setFillColor(colors.darkblue)
+    p.drawString(100, height - 50, f"Invoice #{order.id}")
+
+    # Draw a line under the header
+    p.setStrokeColor(colors.black)
+    p.setLineWidth(1)
+    p.line(100, height - 55, width - 100, height - 55)
+
+    # Add the order date
+    p.setFont("Helvetica", 12)
+    p.drawString(100, height - 80, f"Order Date: {order.order_date.strftime('%Y-%m-%d %H:%M:%S')}")
+
+    # Add customer info
+    p.drawString(100, height - 100, f"Customer: {order.user.firstname} {order.user.lastname}")
+    p.drawString(100, height - 120, f"Email: {order.user.email}")
+    p.drawString(100, height - 140, f"Address: {order.address if order.address else 'Not provided'}")
+
+    # Define table position and dimensions
+    table_top = height - 180
+    table_left = 100
+    table_right = width - 100
+    row_height = 20
+    col_widths = [200, 80, 80, 80]  # Item, Price, Quantity, Total Price
+
+    # Draw table header
+    p.setFont("Helvetica-Bold", 12)
+    p.setFillColor(colors.black)
+    p.setStrokeColor(colors.black)
+    p.setLineWidth(1)
+    p.rect(table_left, table_top - row_height, sum(col_widths), row_height, stroke=1, fill=0)
+
+    headers = ["Item", "Price", "Quantity", "Total Price"]
+    x_positions = [table_left + sum(col_widths[:i]) for i in range(len(headers))]
+
+    for i, header in enumerate(headers):
+        p.drawString(x_positions[i] + 5, table_top - row_height + 5, header)
+
+    # Draw table rows for order items
+    p.setFont("Helvetica", 12)
+    y_position = table_top - 2 * row_height
+
+    for item in order.order_items.all():
+        if y_position <= 50:  # Start a new page if space runs out
+            p.showPage()
+            p.setFont("Helvetica", 12)
+            y_position = height - 100
+
+        # Get size and color details
+        size = item.variant_size.size if item.variant_size else 'No size'
+        color = item.variant.color if item.variant else 'No color'
+
+        # Draw row background
+        p.rect(table_left, y_position, sum(col_widths), row_height, stroke=1, fill=0)
+
+        # Write row data
+        p.drawString(x_positions[0] + 5, y_position + 5, f"{item.variant.product.product_name} ({size}, {color})")
+        p.drawString(x_positions[1] + 5, y_position + 5, f"Rs.{item.price}")
+        p.drawString(x_positions[2] + 5, y_position + 5, f"{item.quantity}")
+        p.drawString(x_positions[3] + 5, y_position + 5, f"Rs.{item.total_price}")
+
+        y_position -= row_height
+
+    # Draw a total amount summary below the table
+    p.setFont("Helvetica-Bold", 12)
+    if y_position <= 50:
+        p.showPage()
+        y_position = height - 100
+
+    p.drawString(table_left, y_position - 20, "Total Amount:")
+    p.setFont("Helvetica", 12)
+    p.drawString(table_right - 60, y_position - 20, f"Rs.{order.total_amount}")
+
+    # Save the PDF document
+    p.showPage()
+    p.save()
+
+    return response

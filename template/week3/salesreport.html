@@ -399,12 +399,12 @@
                                         <tr>
                                             <td>{{ data.grouped_date }}</td>
                                             <td>{{ data.total_products_sold }}</td>
-                                            <td>${{ data.total_price }}</td>
+                                            <td>₹{{ data.total_price }}</td>
                                             <td>{{ data.returned_products }}</td>
                                             <td>{{ data.canceled_products }}</td>
                                             <td>{{ data.delivered_products }}</td>
                                             <td>{{ data.total_orders }}</td>
-                                            <td>${{ data.actual_sales }}</td>
+                                            <td>₹{{ data.actual_sales }}</td>
                                         </tr>
                                     {% empty %}
                                         <tr>
