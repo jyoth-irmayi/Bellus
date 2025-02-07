@@ -142,10 +142,11 @@ class Cart(models.Model):
 
 class CartItem(models.Model):
     cart = models.ForeignKey(
-        Cart,
-        on_delete=models.CASCADE,
-        related_name='cart_items'
-    )
+    Cart,
+    on_delete=models.CASCADE,
+    related_name='cart_items',
+    null=True, blank=True  # ✅ Temporarily allow null values
+)
     variant = models.ForeignKey(
         Variant,
         on_delete=models.CASCADE,
