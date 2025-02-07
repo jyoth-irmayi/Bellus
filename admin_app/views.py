@@ -826,19 +826,55 @@ def admin_deleteproduct(request,id):
     product.save()
     return redirect('admin_product')
 
+# @login_required
+# @admin_required
+# @cache_control(no_cache=True, no_store=True, must_revalidate=True)
+# def admin_order(requst):
+#     """Fetch and list all orders in the admin view."""
+#     orders_list = Order.objects.prefetch_related('order_items__variant__product', 'user', 'address').all().order_by('-order_date')
+#     # Pagination setup: 5 orders per page
+#     paginator = Paginator(orders_list, 5)  # Change 5 to the number of items per page you want
+#     page_number = requst.GET.get('page')  # Get the current page number from the request
+#     orders = paginator.get_page(page_number)
+
+#     context = {'orders': orders}
+#     return render(requst,'week2/admin_order.html', context)
+
+
+
+from django.shortcuts import render
+from django.core.paginator import Paginator
+from django.db.models import Case, When, IntegerField
+from django.views.decorators.cache import cache_control
+from django.contrib.auth.decorators import login_required
+from .models import Order
+
 @login_required
 @admin_required
 @cache_control(no_cache=True, no_store=True, must_revalidate=True)
-def admin_order(requst):
-    """Fetch and list all orders in the admin view."""
-    orders_list = Order.objects.prefetch_related('order_items__variant__product', 'user', 'address').all().order_by('-order_date')
+def admin_order(request):
+    """Fetch and list all orders in the admin view, sorted by cancellation and return requests first."""
+    
+    # Annotate orders with priority for sorting
+    orders_list = Order.objects.prefetch_related(
+        'order_items__variant__product', 'user', 'address'
+    ).annotate(
+        priority=Case(
+            When(order_items__status="pending_cancel", then=1),
+            When(order_items__status="pending_return", then=2),
+            default=3,
+            output_field=IntegerField(),
+        )
+    ).order_by("priority", "-order_date").distinct()
+
     # Pagination setup: 5 orders per page
-    paginator = Paginator(orders_list, 5)  # Change 5 to the number of items per page you want
-    page_number = requst.GET.get('page')  # Get the current page number from the request
+    paginator = Paginator(orders_list, 5)  # Change 5 to your preferred number of orders per page
+    page_number = request.GET.get('page')  # Get the current page number from the request
     orders = paginator.get_page(page_number)
 
     context = {'orders': orders}
-    return render(requst,'week2/admin_order.html', context)
+    return render(request, 'week2/admin_order.html', context)
+
 
 
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger

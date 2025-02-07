@@ -261,6 +261,7 @@ footer {
                                             {% else %}bg-secondary{% endif %}">
                                             {{ item.get_status_display }}
                                             </span>
+                                            {% if item.status == 'pending_cancel' or item.status == 'pending_return' %}
                                             <div class="mt-2">
                                                 <!-- Approve Form -->
                                                 <form method="post" action="{% url 'approve_order_request' item.id 'approve' %}" style="display: inline;">
@@ -274,6 +275,7 @@ footer {
                                                     <button type="submit" class="btn btn-danger btn-sm">Reject</button>
                                                 </form>
                                             </div>
+                                            {% endif %}
                                             
                                         {% else %}
                                             <span class="text-muted">No Request</span>
