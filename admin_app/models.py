@@ -152,10 +152,12 @@ class CartItem(models.Model):
         related_name='cart_items'
     )
     variant_size = models.ForeignKey(
-        VariantSize,
-        on_delete=models.CASCADE,
-        related_name='cart_items',default=0
+    VariantSize,
+    on_delete=models.CASCADE,
+    related_name='cart_items',
+    null=True, blank=True  # ✅ Temporarily allow nulls
     )
+
     price = models.IntegerField()
     quantity = models.PositiveIntegerField(default=1)
     discount=models.PositiveIntegerField()
