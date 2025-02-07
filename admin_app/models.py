@@ -107,7 +107,8 @@ User = UserDetails()
 
 class Cart(models.Model):
     user = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='cart'
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='cart',
+        null=True, blank=True  # Temporary fix
     )
     coupon = models.ForeignKey(
         'Coupon', null=True, blank=True, on_delete=models.SET_NULL

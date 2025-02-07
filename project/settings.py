@@ -113,8 +113,8 @@ DATABASES = {
         'NAME': 'myproject',
         'USER': 'my_user',
         'PASSWORD': 'my_user',
-        'HOST': 'localhost',  # Or IP address of your PostgreSQL server
-        'PORT': '5432',       # Default PostgreSQL port
+        'HOST': 'localhost', 
+        'PORT': '5432',     
     }
 }
 
@@ -187,8 +187,8 @@ EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'jyothirmayirani289@gmail.com'  # Replace with your actual email
-EMAIL_HOST_PASSWORD = 'vvii rpeg rmfs jthz'  # Replace with your app-specific password
+EMAIL_HOST_USER = 'jyothirmayirani289@gmail.com' 
+EMAIL_HOST_PASSWORD = 'vvii rpeg rmfs jthz' 
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
 
