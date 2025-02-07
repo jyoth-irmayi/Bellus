@@ -117,10 +117,13 @@
 
                         <!-- Messages section -->
                         {% if messages %}
-                        {% for message in messages %}
-                        <div class="alert alert-{{ message.tags }}">{{ message }}</div>
-                        {% endfor %}
+                            {% for message in messages %}
+                                <div class="alert {% if message.tags == 'success' %}alert-success{% else %}alert-danger{% endif %}">
+                                    {{ message }}
+                                </div>
+                            {% endfor %}
                         {% endif %}
+
 
                         <!-- Basic Product Information -->
                         <div class="row g-3 mb-4">

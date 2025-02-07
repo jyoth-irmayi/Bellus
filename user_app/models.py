@@ -93,14 +93,19 @@ class Wishlist(models.Model):
         on_delete=models.CASCADE,
         related_name='wishlisted'
     )
+    variansize = models.ForeignKey(
+        'admin_app.VariantSize',
+        on_delete=models.CASCADE,
+        related_name='wishlisted',
+        null=True
+    )
     added_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        unique_together = ('user', 'variant')  # Prevent duplicate wishlist entries
+        unique_together = ('user', 'variant','variansize')  # Prevent duplicate wishlist entries
 
     def __str__(self):
-        return f"{self.user.email} - {self.variant.product.product_name} ({self.variant.name})"
-
+        return f"{self.user.email} - {self.variant.product.product_name} ({self.variant.color} - {self.variansize.size})"
 
 
 

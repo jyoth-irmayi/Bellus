@@ -1,1 +1,75 @@
 .env
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environment
+venv/
+env/
+.venv/
+ENV/
+
+# Django-specific files
+*.log
+db.sqlite3
+db.sqlite3-journal
+media/
+staticfiles/
+*.pot
+*.pyc
+
+# Django migrations (optional, if you don’t want to track them)
+**/migrations/**
+
+# Secrets & configuration files
+.env
+*.pem
+*.key
+*.crt
+*.p12
+
+# VS Code settings
+.vscode/
+
+# PyCharm settings
+.idea/
+
+# macOS files
+.DS_Store
+
+# JetBrains files
+*.iml
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Coverage reports
+htmlcov/
+.coverage
+*.cover
+*.py,cover
+
+# pytest cache
+.pytest_cache/
+
+# Celery beat scheduler
+celerybeat-schedule
+
+# Compiled C extensions
+*.so
+
+# MySQL / PostgreSQL / SQLite dumps
+*.sql
+*.sqlite3
+
+# Build directories
+build/
+dist/
+*.egg-info/
+pip-wheel-metadata/
+
+# Node.js dependencies (if using npm/yarn for frontend)
+node_modules/
+package-lock.json
+yarn.lock

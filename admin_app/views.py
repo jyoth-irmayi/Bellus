@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect,get_object_or_404
 from django.contrib import messages
 from django.contrib.auth import authenticate, login as auth_login
-from user_app.models import UserDetails
+from user_app.models import UserDetails,Transaction
 from .models import categorys,Product,Variant,VariantSize,VariantImage,Order,OrderItem,Coupon
 import cloudinary, cloudinary.uploader
 from PIL import Image
@@ -63,7 +63,7 @@ def admin_dashboard(request):
     if not request.user.is_authenticated or not request.user.is_superuser:
         return redirect('admin_login')
      # Get current time
-    now = datetime.now() # Here, datetime is assigned to a variable, so it's no longer a function.
+    now = datetime.datetime.now() # Here, datetime is assigned to a variable, so it's no longer a function.
     today = now
     start_of_month = today.replace(day=1)
     start_of_year = today.replace(month=1, day=1)
@@ -260,6 +260,7 @@ import cloudinary.uploader  # Ensure Cloudinary is properly configured
 
 def admin_add_product(request):
     if request.method == "POST":
+        errors = []
         # Process product-level data (unchanged)
         product_name = request.POST.get("product_name", "").strip()
         price = request.POST.get("price", "").strip()
@@ -267,6 +268,43 @@ def admin_add_product(request):
         brand = request.POST.get("brand", "").strip()
         description = request.POST.get("description", "").strip()
         discount = request.POST.get("discount", "0").strip()
+
+        # --- Product Validations ---
+        if not product_name:
+            errors.append("Product name is required.")
+        elif not re.match(r"^[A-Za-z\s]+$", product_name):
+            errors.append("Product name should contain only letters.")
+
+        if not brand:
+            errors.append("Brand is required.")
+        elif not re.match(r"^[A-Za-z\s]+$", brand):
+            errors.append("Brand should contain only letters.")
+
+        if not description:
+            errors.append("Description is required.")
+        elif not re.match(r"^[A-Za-z\s]+$", description):
+            errors.append("Description should contain only letters.")
+
+        if not price:
+            errors.append("Price is required.")
+        elif not price.isdigit():
+            errors.append("Price must be a number.")
+
+        if not discount.isdigit():
+            errors.append("Discount must be a number.")
+
+        if discount and price and discount.isdigit() and price.isdigit():
+            if float(discount) >= float(price):
+                errors.append("Discount cannot be greater than or equal to the price.")
+
+        if not category_id:
+            errors.append("Category is required.")
+
+        if errors:
+            for error in errors:
+                messages.error(request, error)
+            return redirect("admin_add_product")
+
 
         # --- Create Product ---
         try:
@@ -306,13 +344,33 @@ def admin_add_product(request):
 
         # Process each variant
         for variant_id, fields in variants_data.items():
+            variant_errors = []
             print(f"Debug: Processing variant {variant_id} - {fields}")
-            color = fields.get("color")
-            variant_price = fields.get("price")
+            color = fields.get("color","").strip()
+            variant_price = fields.get("price",'').strip()
             sizes = fields.get("sizes][", [])
             stocks = fields.get("stocks", {})
             print(size)
             print(stocks)
+
+            if not color:
+                variant_errors.append(f"Color for variant {variant_id} is required.")
+            elif not re.match(r"^[A-Za-z\s]+$", color):
+                variant_errors.append(f"Color for variant {variant_id} must contain only letters.")
+
+            if not variant_price:
+                variant_errors.append(f"Price for variant {variant_id} is required.")
+            elif not variant_price.isdigit():
+                variant_errors.append(f"Price for variant {variant_id} must be a number.")
+
+            if not sizes:
+                variant_errors.append(f"At least one size must be selected for variant {variant_id}.")
+
+            if variant_errors:
+                for error in variant_errors:
+                    messages.error(request, error)
+                return redirect("admin_add_product")
+
 
             # Create variant
             variant = Variant(product=product, color=color, actual_price=float(variant_price))
@@ -779,23 +837,6 @@ def admin_order(requst):
     page_number = requst.GET.get('page')  # Get the current page number from the request
     orders = paginator.get_page(page_number)
 
-    # order_data = []
-    # for order in orders:
-    #     items = order.order_items.all()
-    #     total = sum(item.total_price for item in items)  # Using total_price property from OrderItem
-
-        # order_data.append({
-        #     'order_id': order.id,
-        #     'user_email': order.user.email,
-        #     'address': order.address,  # Assuming address has a readable __str__ method
-        #     'order_date': order.order_date,
-        #     'status': order.status,
-        #     'payment_method': order.payment_method,
-        #     'total': total,
-        #     'is_paid': order.is_paid,
-        #     'is_delivered': order.is_delivered,
-        # })
-
     context = {'orders': orders}
     return render(requst,'week2/admin_order.html', context)
 
@@ -866,6 +907,109 @@ def update_order_status(request, order_id):
                 item.save()
 
     return redirect('view_admin_order', order_id=order.id)
+
+from django.contrib.admin.views.decorators import staff_member_required
+from django.db import transaction
+from decimal import Decimal
+
+
+@login_required
+def approve_order_request(request, item_id, action):
+    print('hello orders')
+    order_item = get_object_or_404(OrderItem, id=item_id)
+
+    print(f"🔍 Initial Status: {order_item.status}, Request Status: {order_item.request_status}")
+
+    if order_item.status in ['pending', 'shipped', 'delivered', 'pending_cancel', 'pending_return']:  
+        try:
+            with transaction.atomic():
+                old_status = order_item.status  
+
+                if action == 'approve':
+                    
+                    if order_item.status == 'pending_cancel':
+                        order_item.status = 'canceled'
+                    elif order_item.status == 'pending_return':
+                        order_item.status = 'returned'
+                    else:
+                        messages.error(request, "⚠️ Invalid request type or status mismatch.")
+                        print("kflkjfjkds")
+                        return redirect('view_admin_order', order_item.order.id)
+
+                    order_item.request_status = 'approved'
+                    print(f"✅ Updating Status to: {order_item.status}")
+                    order_item.save()
+                    print(order_item.status)
+
+                    refund_amount = order_item.total_price + (order_item.total_price * Decimal('0.10'))
+                    wallet = order_item.order.user.wallet
+
+                    if wallet:
+                        wallet.balance = F('balance') + refund_amount
+                        wallet.save(update_fields=['balance'])
+                        wallet.refresh_from_db()
+
+                        Transaction.objects.create(
+                            wallet=wallet,
+                            amount=refund_amount,
+                            transaction_type='credit',
+                            description=f"Refund for {order_item.status} order item {order_item.id}"
+                        )
+                        print(f"✅ Wallet updated: New Balance {wallet.balance}")
+                    else:
+                        messages.error(request, "User wallet not found.")
+
+                    variant_size = VariantSize.objects.filter(
+                        variant=order_item.variant,
+                        size=order_item.variant_size.size
+                    ).first()
+
+                    if variant_size:
+                        print(f"✅ Updating stock for VariantSize {variant_size.size}")
+                        variant_size.quantity = F('quantity') + order_item.quantity
+                        variant_size.save(update_fields=['quantity'])
+                    else:
+                        print("⚠️ Variant size not found! Check database.")
+
+                    messages.success(request, f"Order {order_item.status} approved successfully.")
+
+                elif action == 'reject':
+                    order_item.status = old_status  # Keep the previous status
+                    order_item.request_status = 'rejected'
+                    order_item.save()
+                    messages.error(request, "❌ Order request rejected.")
+
+                else:
+                    messages.error(request, "Order .")
+
+
+                print(f"DEBUG: Before saving -> Status: {order_item.status}")
+
+                order_item.save(update_fields=['status', 'request_status'])
+                order_item.refresh_from_db()
+
+                latest_status = OrderItem.objects.get(id=item_id).status
+                if latest_status != order_item.status:
+                    print(f"⚠️ Status changed unexpectedly! Before Save: {order_item.status}, After Save: {latest_status}")
+
+        except Exception as e:
+            messages.error(request, f"An error occurred while processing the request: {str(e)}")
+    else:
+        messages.error(request, "cannot update")
+
+    return redirect('view_admin_order',order_item.order.id)
+
+
+
+@login_required
+def reject_order_request(request, item_id):
+    order_item = get_object_or_404(OrderItem, id=item_id)
+    if order_item.request_status == 'pending':
+        order_item.request_status = 'rejected'
+        order_item.save()
+        messages.warning(request, "Order request rejected.")
+    return redirect('admin_order_list')
+
 
 @login_required
 @admin_required
@@ -1055,7 +1199,7 @@ def salesreport(request):
     }
     return render(request, 'week3/salesreport.html', context)
 
-
+import datetime
 
 from django.db.models import Sum, Count, F, Case, When, IntegerField
 from django.db.models.functions import TruncDay, TruncMonth, TruncYear
@@ -1135,8 +1279,10 @@ def sales_report_data(request):
     total_orders = queryset.aggregate(Count('id'))['id__count'] or 0
     total_products_sold = queryset.aggregate(Sum('delivered_products'))['delivered_products__sum'] or 0
 
+    today = datetime.date.today().strftime('%Y-%m-%d')
     # Prepare the context for rendering
     context = {
+        'today': today,
         'sales_data': queryset,
         'total_sales': total_sales,
         'total_orders': total_orders,

@@ -212,8 +212,6 @@ footer {
                         </div>
                     </div>
                     <h6 class="fw-bold mb-3">Order Items</h6>
-                    <form method="POST" action="{% url 'view_admin_order' order.id %}">
-                        {% csrf_token %}
                         <table class="table">
                             <thead>
                                 <tr>
@@ -222,6 +220,7 @@ footer {
                                     <th>Quantity</th>
                                     <th>Total</th>
                                     <th>Status</th>
+                                    <th>Request</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -251,12 +250,44 @@ footer {
                                             {% endfor %}
                                         </select>
                                     </td>
+                                    <td>
+                                        {% if item.request_status %}
+                                            <span class="badge 
+                                            {% if item.status == 'pending' %}bg-warning
+                                            {% elif item.status == 'processing' %}bg-info
+                                            {% elif item.status == 'shipped' %}bg-primary
+                                            {% elif item.status == 'delivered' %}bg-success
+                                            {% elif item.status == 'canceled' %}bg-danger
+                                            {% else %}bg-secondary{% endif %}">
+                                            {{ item.get_status_display }}
+                                            </span>
+                                            <div class="mt-2">
+                                                <!-- Approve Form -->
+                                                <form method="post" action="{% url 'approve_order_request' item.id 'approve' %}" style="display: inline;">
+                                                    {% csrf_token %}
+                                                    <button type="submit" class="btn btn-success btn-sm">Approve</button>
+                                                </form>
+                                                
+                                                <!-- Reject Form -->
+                                                <form method="post" action="{% url 'approve_order_request' item.id 'reject' %}" style="display: inline;">
+                                                    {% csrf_token %}
+                                                    <button type="submit" class="btn btn-danger btn-sm">Reject</button>
+                                                </form>
+                                            </div>
+                                            
+                                        {% else %}
+                                            <span class="text-muted">No Request</span>
+                                        {% endif %}
+                                    </td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
                         </table>
+                        <form method="POST" action="{% url 'view_admin_order' order.id %}">
+                            {% csrf_token %}
                         <button type="submit" class="btn btn-success mt-3">Update Status</button>
-                    </form>
+                        </form>
+                    
                 </div>
                 <div class="card-footer">
                     <h6 class="fw-bold mb-3">Order Timeline</h6>
@@ -315,6 +346,33 @@ footer {
         </div>
     </footer>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        {% if messages %}
+        const messages = [
+            {% for message in messages %}
+            {
+                level: "{{ message.tags|escapejs }}",
+                text: "{{ message|escapejs }}"
+            }{% if not forloop.last %},{% endif %}
+            {% endfor %}
+        ];
+
+        messages.forEach(message => {
+            Swal.fire({
+                toast: true,
+                position: 'top-right',
+                icon: message.level.includes('success') ? 'success' : 'error',
+                title: message.text,
+                showConfirmButton: false,
+                timer: 3000
+            });
+        });
+        {% endif %}
+    });
+</script>
+
     </body>
     </html>
 

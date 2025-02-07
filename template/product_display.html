@@ -20,6 +20,8 @@
             font-family: 'Arial', sans-serif;
             color: var(--text-color);
             padding-top: 76px;
+            position: relative;
+
         }
 
         .navbar {
@@ -94,7 +96,38 @@
         .wishlist-btn:hover {
             color: var(--accent-color);
         }
+        .popup {
+            position: fixed;
+            top: 20px; /* This ensures it appears at the top */
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+            z-index: 9999; /* Ensure it's above all other elements */
+            display: none;
+            font-size: 16px;
+            font-weight: bold;
+            text-align: center;
+            min-width: 250px;
+            max-width: 80%;
+            white-space: nowrap;
+        }
 
+        /* Different popup colors */
+        .popup.info {
+            background-color: #2196F3;
+        }
+
+        .popup.error {
+            background-color: #f44336;
+        }
+
+        .popup.success {
+            background-color: #4CAF50;
+        }
         .thumbnail-image img {
             border-radius: 4px;
             transition: opacity 0.3s ease;
@@ -220,17 +253,19 @@
                         {% endif %}
                         <div class="wishlist-btn-container">
                             {% if selected_variant and selected_variant.id %}
-                                {% if is_in_wishlist %}
-                                    <a href="{% url 'remove_from_wishlist' selected_variant.id %}" class="wishlist-btn">
-                                        <i class="fas fa-heart"></i>
-                                    </a>
-                                {% else %}
-                                    <a href="{% url 'add_to_wishlist' selected_variant.id %}" class="wishlist-btn">
-                                        <i class="far fa-heart"></i>
-                                    </a>
-                                {% endif %}
+                                <a href="#" class="wishlist-btn" id="wishlist-button" 
+                                data-variant-id="{{ selected_variant.id }}" 
+                                data-variant-size-id="">
+                                    <i class="far fa-heart" id="wishlist-icon"></i>
+                                </a>
+                            {% else %}
+                                <button class="wishlist-btn disabled" onclick="alert('Please select a size first!')">
+                                    <i class="far fa-heart"></i>
+                                </button>
                             {% endif %}
                         </div>
+                        <div id="wishlist-popup" class="popup" style="display: none;"></div>
+
                     </div>
                     <div class="row mt-3">
                         {% for image in images|slice:":3" %}
@@ -400,6 +435,7 @@
     
 <!-- Bootstrap JS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
 <!-- Image Change Script -->
 <script>
@@ -448,9 +484,139 @@
         });
     });
 </script>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        console.log("JavaScript loaded");
+
+        // Handle size selection
+        document.querySelectorAll('.size-box').forEach(box => {
+            box.addEventListener('click', function () {
+                // Ignore out-of-stock sizes
+                if (this.classList.contains('out-of-stock')) {
+                    return;
+                }
+
+                // Remove 'selected' class from all size boxes
+                document.querySelectorAll('.size-box').forEach(otherBox => {
+                    otherBox.classList.remove('selected');
+                });
+
+                // Add 'selected' class to the clicked size box
+                this.classList.add('selected');
+
+                // Update hidden input and button attribute
+                const sizeId = this.getAttribute('data-size-id');
+                document.getElementById('size_id').value = sizeId;
+                document.getElementById('wishlist-button').setAttribute('data-variant-size-id', sizeId);
+
+                // Enable the Add to Cart button
+                const addToCartBtn = document.getElementById('add-to-cart-btn');
+                if (sizeId) {
+                    addToCartBtn.disabled = false;
+                }
+
+                console.log("Selected Size ID:", sizeId);
+            });
+        });
+    });
+
+    $(document).ready(function () {
+        console.log("jQuery is loaded and ready.");
+
+        var wishlistButton = $('#wishlist-button');
+
+        // Function to check wishlist status
+        function checkWishlist(variantId, variantSizeId) {
+            if (!variantSizeId) {
+                console.log("No size selected, skipping wishlist check.");
+                return;
+            }
+
+            $.ajax({
+                url: "{% url 'check_wishlist_status' %}",
+                method: 'GET',
+                data: {
+                    'variant_id': variantId,
+                    'variant_size_id': variantSizeId
+                },
+                success: function (response) {
+                    if (response.is_in_wishlist) {
+                        wishlistButton.find('i').removeClass('far fa-heart').addClass('fas fa-heart');
+                    } else {
+                        wishlistButton.find('i').removeClass('fas fa-heart').addClass('far fa-heart');
+                    }
+                },
+                error: function (xhr, errmsg, err) {
+                    console.log("Error checking wishlist status:", errmsg, err);
+                }
+            });
+        }
+
+        // Update wishlist button when a size is selected
+        $(document).on('click', '.size-box', function () {
+            var selectedSizeId = $(this).data('size-id');
+            var variantId = wishlistButton.attr('data-variant-id');
+
+            if (selectedSizeId) {
+                console.log("Size selected: " + selectedSizeId);
+                wishlistButton.attr('data-variant-size-id', selectedSizeId);
+                checkWishlist(variantId, selectedSizeId);
+            }
+        });
+
+        // Wishlist button click event
+        $(document).on('click', '#wishlist-button', function (e) {
+            e.preventDefault();
+            var button = $(this);
+            var variantId = button.attr('data-variant-id');
+            var variantSizeId = button.attr('data-variant-size-id');
+
+            if (!variantSizeId || variantSizeId === "") {
+                showPopup("⚠️ Please select a size first.", "error");
+                return;
+            }
+
+            $.ajax({
+                url: "{% url 'toggle_wishlist' %}",
+                method: 'POST',
+                data: {
+                    'variant_id': variantId,
+                    'variant_size_id': variantSizeId,
+                    'csrfmiddlewaretoken': $('input[name="csrfmiddlewaretoken"]').val()
+                },
+                success: function (response) {
+                    if (response.success) {
+                        if (response.action === 'added') {
+                            showPopup("Product added to wishlist!", "success");
+                            button.find('i').removeClass('far fa-heart').addClass('fas fa-heart');
+                        } else {
+                            showPopup("Product removed from wishlist!", "info");
+                            button.find('i').removeClass('fas fa-heart').addClass('far fa-heart');
+                        }
+                    } else {
+                        alert('Failed to update wishlist. Please try again.');
+                    }
+                },
+                error: function (xhr, errmsg, err) {
+                    console.log("Error toggling wishlist:", errmsg, err);
+                    alert("Error: " + errmsg);
+                }
+            });
+        });
+    });
+    function showPopup(message, type) {
+        var popup = $("#wishlist-popup");
+        popup.text(message).removeClass().addClass("popup " + type).fadeIn();
+        
+        setTimeout(function () {
+            popup.fadeOut();
+        }, 3000);
+    }
+</script>
+
 
 <!-- Zoom Effect Script -->
-<script>
+<!-- <script>
     document.addEventListener('DOMContentLoaded', () => {
         const container = document.querySelector('.product-image-container');
         const mainImage = document.getElementById('main-image');
@@ -501,7 +667,7 @@
             zoomedImage.style.top = `${zoomY}px`;
         });
     });
-</script>
+</script> -->
 
 <!-- SweetAlert for Messages -->
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -530,7 +696,7 @@
     });
 </script>
 
-<script>
+<!-- <script>
     function validateSearch() {
         const searchInput = document.querySelector('input[name="search"]').value.trim();
         if (!searchInput) {
@@ -551,7 +717,8 @@
         popup.classList.remove('visible');
         popup.classList.add('hidden');
     }
-</script>
+</script> -->
+
 </body>
 </html>
 

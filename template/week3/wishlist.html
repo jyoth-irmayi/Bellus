@@ -234,7 +234,6 @@
                         <div style="padding-bottom:30px;">
                             <h5 class="card-title mb-4">Your Wishlist Items</h5>
                         </div>
-                    
                         {% for entry in wishlist_items %}
                         <div class="row mb-4 border-bottom pb-4 wishlist-item">
                             <div class="col-md-2 col-4">
@@ -247,22 +246,20 @@
                                 </a>
                             </div>
                             <div class="col-md-6 col-8">
-                                <h6 class="text-black mb-0">{{ entry.wishlist_item.variant.product.product_name }}</h6>
-                                <p><strong>Brand:</strong> {{ entry.wishlist_item.variant.product.brand }}</p>
-                                <p style="color: green;"><strong>Discount:</strong> {{ entry.wishlist_item.variant.product.discount }}%</p>
+                                <h6 class="mb-2">{{ entry.wishlist_item.variant.product.product_name }}</h6>
+                                     <p class="mb-2 text-muted">{{ entry.wishlist_item.variant.product.description }}</p>
+                                     <p class="mb-2"><small>Brand:</small> {{ entry.wishlist_item.variant.product.brand }}</p>
+                                     <p><strong>Size:</strong> {{ entry.wishlist_item.variansize.size }}</p>
+                                    <p class="mb-0"><strong>Rs.₹{{ entry.wishlist_item.variant.actual_price }}</strong>
+                                    <span class="text-muted text-decoration-line-through ms-2" style="font-size: 0.85em;">Rs. {{ entry.wishlist_item.variant.product.price }}</span>
+                                    <span class="text-danger fw-bold ms-2">( {{ entry.wishlist_item.variant.product.discount }} Off)</span></p>
                             </div>
-                            <div class="col-md-4 col-12 mt-3 mt-md-0">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <div class="text-end">
-                                        <h6 class="mb-0">₹{{ entry.wishlist_item.variant.product.price }}</h6>
-                                    </div>
-                                    <div class="text-end">
-                                        <a class="remove-btn" href="{% url 'remove_from_wishlist' entry.wishlist_item.variant.id %}">
-                                            Remove
-                                        </a>
-                                    </div>
-                                </div>
+                            <div class="col-md-4 col-12 text-end">
+                                <a href="{% url 'add_to_cart_from_wishlist' entry.wishlist_item.variant.id entry.wishlist_item.variansize.id %}" class="btn btn-primary">
+                                    Add to Cart
+                                </a>
                             </div>
+                            
                         </div>
                         {% empty %}
                         <p class="text-center">Your wishlist is empty.</p>
@@ -336,5 +333,31 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.2/font/bootstrap-icons.min.css">
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        {% if messages %}
+        const messages = [
+            {% for message in messages %}
+            {
+                level: "{{ message.tags }}",
+                text: "{{ message }}"
+            },
+            {% endfor %}
+        ];
+        messages.forEach(message => {
+            Swal.fire({
+                toast: true,
+                position: 'top-right',
+                icon: message.level === 'success' ? 'success' : 'error',
+                title: message.text,
+                showConfirmButton: false,
+                timer: 3000
+            });
+        });
+        {% endif %}
+    });
+</script>
     </body>
     </html>

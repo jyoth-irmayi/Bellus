@@ -248,6 +248,12 @@ class OrderItem(models.Model):
         ('canceled', 'Canceled'),
         ('returned', 'Returned'),
     ]
+    REQUEST_STATUS_CHOICES = [
+        ('none', 'None'),
+        ('pending', 'Pending'),
+        ('approved', 'Approved'),
+        ('rejected', 'Rejected'),
+    ]
 
     order = models.ForeignKey(
         Order,
@@ -263,6 +269,12 @@ class OrderItem(models.Model):
     quantity = models.PositiveIntegerField(default=1)
     price = models.DecimalField(max_digits=10, decimal_places=2)
     status = models.CharField(max_length=20, choices=ORDER_STATUS_CHOICES, default='pending')
+    request_status = models.CharField(
+        max_length=20,
+        choices=REQUEST_STATUS_CHOICES,
+        default='none'
+    )
+
 
 
     def __str__(self):

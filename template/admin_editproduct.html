@@ -45,7 +45,7 @@
             background-color: #f8f9fa;
             color: var(--primary-color);
         }
-        .message.success {
+        .messages.success {
             color: #155724;
             padding: 10px;
             margin: 10px 0;
@@ -53,7 +53,7 @@
         }
 
         /* Style for error messages */
-        .message.error {
+        .messages.error {
             color: red;
             padding: 10px;
             margin: 10px 0;
@@ -151,7 +151,14 @@
             <form class="product-form bg-light p-4 rounded" action="{% url 'admin_edit_product' product.product_id %}" method="post" enctype="multipart/form-data">
                 {% csrf_token %}
                 <div class="row">
-                    
+                    {% if messages %}
+    {% for message in messages %}
+        <div class="alert {% if message.tags %}alert-{{ message.tags }}{% endif %}">
+            {{ message }}
+        </div>
+    {% endfor %}
+{% endif %}
+
                     <div class="col-md-12">
                         <div class="row g-3">
                             <div class="col-md-6">

@@ -342,7 +342,7 @@
                                     <button type="submit" class="btn btn-primary form-control">Apply Filter</button>
                                 </div>
                             </div>
-                        </form>
+                        </form> 
                     </div>
                     
                     <!-- Summary Metrics -->
@@ -397,7 +397,7 @@
                                 <tbody>
                                     {% for data in sales_data %}
                                         <tr>
-                                            <td>{{ data.grouped_date }}</td>
+                                            <td>{{ data.grouped_date|date:"Y-m-d" }}</td>
                                             <td>{{ data.total_products_sold }}</td>
                                             <td>₹{{ data.total_price }}</td>
                                             <td>{{ data.returned_products }}</td>

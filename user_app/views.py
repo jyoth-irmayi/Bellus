@@ -899,37 +899,33 @@ def cart_view(request):
 
 import json
 from django.http import JsonResponse
-
-@login_required
-@login_required
-@login_required
 @login_required
 def update_cart_item(request, item_id):
     if request.method == 'POST':
         data = json.loads(request.body)
         quantity = data.get('quantity')
 
-        cart_item = CartItem.objects.get(id=item_id)
+        try:
+            cart_item = CartItem.objects.get(id=item_id)
 
-        # Check if the requested quantity exceeds the stock
-        if quantity > cart_item.variant_size.quantity:
-            return JsonResponse({'success': False, 'message': f'Cannot increase quantity above stock. Only {cart_item.variant_size.quantity} items available.'})
+            # Check if the requested quantity exceeds the stock
+            if quantity > cart_item.variant_size.quantity:
+                return JsonResponse({'success': False, 'message': f'Cannot increase quantity above stock. Only {cart_item.variant_size.quantity} items available.'})
+            
+            # Max quantity allowed (5)
+            if quantity > 5:
+                return JsonResponse({'success': False, 'message': 'You cannot have more than 5 items of the same product in the cart.'})
+
+            # Update the quantity
+            cart_item.quantity = quantity
+            cart_item.save()
+
+            return JsonResponse({'success': True})
         
-        # Max quantity allowed (5)
-
-        if quantity > 5:
-            return JsonResponse({'success': False, 'message': 'You cannot have more than 5 items of the same product in the cart.'})
-
-        # Update the quantity
-        cart_item.quantity = quantity
-        cart_item.save()
-
-        return JsonResponse({'success': True})
+        except CartItem.DoesNotExist:
+            return JsonResponse({'success': False, 'message': 'Item not found in the cart.'})
 
     return JsonResponse({'success': False, 'message': 'Invalid request.'})
-
-
-
 
 
 @login_required
@@ -1016,9 +1012,14 @@ def shop(request):
                 first_variant.images.filter(is_primary=True).first() or
                 first_variant.images.first()
             )  # Get primary image or the first image
+            actual_price = first_variant.actual_price
+            color = first_variant.color
         products_with_images.append({
             "product": product,
             "image": first_image.image.url if first_image else None,
+            "actual_price": actual_price,  # Include actual price\
+            "color":color
+
         })
 
     context = {
@@ -1724,7 +1725,6 @@ def user_order_items(request):
     }
     return render(request, 'week2/order_item.html', context)
 
-
 @login_required
 def cancel_order_item(request, item_id):
     order_item = get_object_or_404(OrderItem, id=item_id, order__user=request.user)
@@ -1732,75 +1732,18 @@ def cancel_order_item(request, item_id):
     if order_item.status not in ['delivered', 'canceled']:
         try:
             with transaction.atomic():
-                order_item.status = 'canceled'
+                order_item.status = 'pending_cancel'  # Set status to pending for admin approval
                 order_item.save()
 
-                # Calculate the refund amount for the canceled item
-                refund_amount = order_item.price * order_item.quantity
-                # Apply 10% tax
-                refund_amount_with_tax = refund_amount + (refund_amount * Decimal('0.10'))
-
-                # Get the order payment method
-                payment_method = order_item.order.payment_method
-
-                if payment_method in ['wallet', 'razorpay']:
-                    # Handle wallet or razorpay refunds
-                    coupon_code = request.session.get('applied_coupon_code')
-                    if coupon_code:
-                        try:
-                            coupon = Coupon.objects.get(code=coupon_code, is_active=True, is_delete=False)
-
-                            if coupon.discount_type == 'percentage':
-                                # Calculate the discount based on the percentage
-                                cart_total = sum(item.variant.actual_price * item.quantity for item in CartItem.objects.filter(cart=order_item.order.cart))
-                                discount = (cart_total * coupon.discount_value) / 100
-                            else:
-                                # Fixed discount
-                                discount = coupon.discount_value
-
-                            # Adjust the refund amount by subtracting the coupon discount from the refund amount
-                            refund_amount_with_tax -= discount
-                        except Coupon.DoesNotExist:
-                            logger.warning(f"Invalid or expired coupon code {coupon_code} used.")
-                    
-                    # Add the refund amount to the user's wallet if the payment was through wallet or razorpay
-                    wallet = order_item.order.user.wallet
-                    wallet.balance += refund_amount_with_tax
-                    wallet.save()
-
-                    # Create a transaction record for the refund
-                    Transaction.objects.create(
-                        wallet=wallet,
-                        amount=refund_amount_with_tax,
-                        transaction_type='credit',
-                        description=f"Refund for canceled order item {order_item.id}"
-                    )
-
-                    messages.success(request, "Order item canceled and refund processed successfully.")
-                else:
-                    # No refund necessary for COD
-                    messages.success(request, "Order item canceled (COD payment, no refund required).")
-
-                # Update the stock
-                variant_size = VariantSize.objects.filter(
-                    variant=order_item.variant,
-                    size=order_item.variant_size.size
-                ).first()
-
-                if variant_size:
-                    variant_size.quantity = F('quantity') + order_item.quantity
-                    variant_size.save()
-
+                messages.success(request, "Your cancellation request has been sent for approval.")
         except Exception as e:
-            messages.error(request, f"An error occurred while canceling the order item: {str(e)}")
+            messages.error(request, f"An error occurred while requesting cancellation: {str(e)}")
     else:
         messages.error(request, "This order item cannot be canceled (already delivered or canceled).")
 
     return redirect('user_order_items')
 
-from django.db.models import F
 
-logger = logging.getLogger(__name__)  # Initialize Logger
 
 @login_required
 def return_order_item(request, item_id):
@@ -1809,80 +1752,15 @@ def return_order_item(request, item_id):
     if order_item.status == 'delivered':
         try:
             with transaction.atomic():
-                order_item.status = 'returned'
+                order_item.status = 'pending_return'  # Set status to pending for admin approval
                 order_item.save()
 
-                # Update stock quantity
-                variant_size = VariantSize.objects.filter(
-                    variant=order_item.variant,
-                    size=order_item.variant_size.size  
-                ).first()
-
-                if variant_size:
-                    variant_size.quantity = F('quantity') + order_item.quantity
-                    variant_size.save()
-                else:
-                    messages.error(request, "Related stock not found. Could not update the stock.")
-
-                # Calculate refund amount
-                base_refund_amount = order_item.total_price
-                tax = base_refund_amount * Decimal('0.10')  # 10% tax
-                final_refund_amount = base_refund_amount + tax
-
-                # Check if a coupon was used
-                coupon_code = request.session.get('applied_coupon_code')
-                coupon_amount = Decimal('0.00')
-
-                if coupon_code:
-                    try:
-                        coupon = Coupon.objects.get(code=coupon_code, is_active=True, is_delete=False)
-
-                        # Check if coupon is still applicable
-                        remaining_order_items = OrderItem.objects.filter(order=order_item.order, status='delivered').exclude(id=order_item.id)
-                        remaining_cart_total = sum(item.total_price for item in remaining_order_items)
-
-                        if remaining_cart_total < coupon.offer_rate:
-                            # Coupon is no longer valid after return, so refund the coupon amount
-                            if coupon.discount_type == 'percentage':
-                                coupon_amount = (order_item.order.total_amount * coupon.discount_value) / 100
-                            else:
-                                coupon_amount = coupon.discount_value
-
-                            final_refund_amount += coupon_amount  # Add coupon amount to refund
-
-                            # Remove coupon from session
-                            del request.session['applied_coupon_code']
-
-                    except Coupon.DoesNotExist:
-                        messages.warning(request, "Coupon used in this order is invalid or expired.")
-
-                # Process refund by adding amount to user's wallet
-                try:
-                    wallet = Wallet.objects.get(user=request.user)
-                except Wallet.DoesNotExist:
-                    messages.error(request, "Wallet not found for the user.")
-                    return redirect('user_order_items')
-
-                wallet.balance = F('balance') + final_refund_amount
-                wallet.save()
-                wallet.refresh_from_db()
-
-                # Log transaction
-                Transaction.objects.create(
-                    wallet=wallet,
-                    amount=final_refund_amount,
-                    transaction_type='credit',
-                    description=f"Refund for returned order item {order_item.id} (Incl. tax + Coupon Adjustment)"
-                )
-
-                messages.success(request, f"Your order has been returned, and ₹{final_refund_amount} has been added to your wallet.")
-
+                messages.success(request, "Your return request has been sent for approval.")
         except Exception as e:
-            logger.error(f"Error processing return for order item {item_id}: {e}")
-            messages.error(request, f"An error occurred while processing the return: {e}")
+            messages.error(request, f"An error occurred while requesting return: {e}")
     else:
         messages.error(request, "Only delivered orders can be returned.")
-    
+
     return redirect('user_order_items')
 
 
@@ -2069,7 +1947,8 @@ def wishlist_view(request):
     
     # Fetch wishlist items with related variants, products, and images
     wishlist_items = Wishlist.objects.filter(user=user).select_related(
-        'variant__product'
+        'variant__product',
+        'variansize'
     ).prefetch_related(
         'variant__images'
     ).order_by('-added_at')
@@ -2094,28 +1973,90 @@ def wishlist_view(request):
     })
 
 
-@login_required
-def add_to_wishlist(request, variant_id):
-    variant = get_object_or_404(Variant, id=variant_id)
-    
-    # Ensure the variant is only added once per user
-    wishlist_item, created = Wishlist.objects.get_or_create(user=request.user, variant=variant)
-    if created:
-        messages.success(request, f"Added '{variant.product.product_name}' to your wishlist.")
-    else:
-        messages.info(request, f"'{variant.product.product_name}' is already in your wishlist.")
-
-    
-    # Redirect back to the product detail page
-    return redirect('product_detail', product_id=variant.product.id)
 
 @login_required
-def remove_from_wishlist(request, variant_id):
-    variant = get_object_or_404(Variant, id=variant_id)
-    Wishlist.objects.filter(user=request.user, variant=variant).delete()
-    messages.success(request, f"Removed '{variant.product.product_name}' from your wishlist.")
+def toggle_wishlist(request):
+    print('hai')
+    if request.method == 'POST':
+        variant_id = request.POST.get('variant_id')
+        variant_size_id = request.POST.get('variant_size_id')
+        print(variant_size_id)
 
-    return redirect('product_detail', product_id=variant.product.id)
+        try:
+            # Ensure variant and size exist
+            variant = Variant.objects.get(id=variant_id)
+            variant_size = VariantSize.objects.get(id=variant_size_id)
+
+            # Check if the item is already in the wishlist
+            wishlist_item, created = Wishlist.objects.get_or_create(
+                user=request.user,
+                variant=variant,
+                variansize=variant_size  # Fix field name if needed
+            )
+            print('wishlistitem',wishlist_item)
+
+            if created:
+                return JsonResponse({'success': True, 'action': 'added'})
+            else:
+                wishlist_item.delete()
+                return JsonResponse({'success': True, 'action': 'removed'})
+
+        except Variant.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Variant not found.'})
+        except VariantSize.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Variant size not found.'})
+    return JsonResponse({'success': False, 'error': 'Invalid request.'})
+
+@login_required
+def check_wishlist_status(request):
+    print('hello')
+    variant_id = request.GET.get('variant_id')
+    variant_size_id = request.GET.get('variant_size_id')
+
+    try:
+        variant = Variant.objects.get(id=variant_id)
+        variant_size = VariantSize.objects.get(id=variant_size_id)
+
+        # Check if this variant-size pair exists in the wishlist
+        is_in_wishlist = Wishlist.objects.filter(
+            user=request.user, variant=variant, variansize=variant_size
+        ).exists()
+
+        return JsonResponse({'is_in_wishlist': is_in_wishlist})
+
+    except Variant.DoesNotExist:
+        return JsonResponse({'error': 'Variant not found.', 'is_in_wishlist': False})
+    except VariantSize.DoesNotExist:
+        return JsonResponse({'error': 'Variant size not found.', 'is_in_wishlist': False})
+
+
+@login_required
+def add_to_cart_from_wishlist(request, variant_id, variansize_id):
+    variant = get_object_or_404(Variant, id=variant_id)
+    variansize = get_object_or_404(VariantSize, id=variansize_id, variant=variant)
+    
+    # Get or create the cart for the user
+    cart, created = Cart.objects.get_or_create(user=request.user)
+
+    # Check if the item is already in the cart
+    cart_item, created = CartItem.objects.get_or_create(
+        cart=cart,
+        variant=variant,
+        variant_size=variansize,
+        defaults={'price': variant.actual_price, 'discount': variant.product.discount}
+    )
+    
+    if not created:
+        # If the item exists, increase the quantity
+        cart_item.quantity += 1
+        cart_item.save()
+
+    # Remove the item from the wishlist
+    Wishlist.objects.filter(user=request.user, variant=variant, variansize=variansize).delete()
+
+    messages.success(request, f"Added '{variant.product.product_name}' (Size: {variansize.size}) to your cart.")
+
+    return redirect('wishlist')
 
 
 def generate_invoice(request, order_id):
