@@ -63,7 +63,7 @@ def admin_dashboard(request):
     if not request.user.is_authenticated or not request.user.is_superuser:
         return redirect('admin_login')
      # Get current time
-    now = datetime.datetime.now() # Here, datetime is assigned to a variable, so it's no longer a function.
+    now = datetime.now() # Here, datetime is assigned to a variable, so it's no longer a function.
     today = now
     start_of_month = today.replace(day=1)
     start_of_year = today.replace(month=1, day=1)
