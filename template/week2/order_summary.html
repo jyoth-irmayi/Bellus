@@ -194,6 +194,7 @@
                                 <input type="text" id="coupon-code-input" name="coupon_code" class="form-control" readonly>
                             </div>
                             <button type="submit" class="btn btn-primary w-100">Apply Selected Coupon</button>
+                            <button type="button" class="btn btn-white w-100"  style="background-color:white; border: 1px solid black;margin-top: 5px;"  onclick="cancelCoupon()">Cancel Coupon</button>
                         </form>
                     </div>
                 </div>
@@ -408,7 +409,15 @@ document.getElementById('coupon-form').onsubmit = function (event) {
     };
     </script>
     
-
+    <script>
+        function cancelCoupon() {
+            // Clear the selected radio button
+            document.querySelectorAll('.coupon-radio').forEach(radio => radio.checked = false);
+            
+            // Clear the coupon code input field
+            document.getElementById('coupon-code-input').value = '';
+        }
+    </script>
    </body>
 </html>
 
