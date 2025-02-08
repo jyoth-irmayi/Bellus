@@ -1010,7 +1010,11 @@ def approve_order_request(request, item_id, action):
                     messages.success(request, f"Order {order_item.status} approved successfully.")
 
                 elif action == 'reject':
-                    order_item.status = old_status  # Keep the previous status
+                    if order_item.status == 'pending_cancel':
+                        order_item.status = 'cancel rejected' 
+                    if order_item.status == 'pending_return': 
+                        order_item.status = 'return rejected'    
+  
                     order_item.request_status = 'rejected'
                     order_item.save()
                     messages.error(request, "❌ Order request rejected.")

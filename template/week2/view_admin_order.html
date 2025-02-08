@@ -220,7 +220,12 @@ footer {
                                     <th>Quantity</th>
                                     <th>Total</th>
                                     <th>Status</th>
-                                    <th>Request</th>
+                                    {% for item in paginated_order_items %}
+                                    {% if item.status == 'pending_cancel' or item.status == 'pending_return' %}
+                                        <th>Request</th>
+                                    {% endif %}
+                                    {% endfor %}
+
                                 </tr>
                             </thead>
                             <tbody>
@@ -244,11 +249,15 @@ footer {
                                     <td>{{ item.quantity }}</td>
                                     <td>₹{{ item.price }}</td>
                                     <td>
+                                        <form method="POST" action="{% url 'view_admin_order' order.id %}">
+                                            {% csrf_token %}
                                         <select name="order_status_{{ item.id }}" class="form-control">
                                             {% for key, value in item.ORDER_STATUS_CHOICES %}
                                             <option value="{{ key }}" {% if item.status == key %}selected{% endif %}>{{ value }}</option>
                                             {% endfor %}
                                         </select>
+                                        <button type="submit" class="btn btn-success mt-3">Update Status</button>
+                                        </form>
                                     </td>
                                     <td>
                                         {% if item.request_status %}
@@ -285,10 +294,6 @@ footer {
                                 {% endfor %}
                             </tbody>
                         </table>
-                        <form method="POST" action="{% url 'view_admin_order' order.id %}">
-                            {% csrf_token %}
-                        <button type="submit" class="btn btn-success mt-3">Update Status</button>
-                        </form>
                     
                 </div>
                 <div class="card-footer">
