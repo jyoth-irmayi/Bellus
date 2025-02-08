@@ -664,159 +664,6 @@ def admin_editproduct(request, product_id):
     })
 
 
-
-# @login_required
-# @admin_required
-# @cache_control(no_cache=True, no_store=True, must_revalidate=True)
-# def admin_editproduct(request, product_id):
-#     product = get_object_or_404(Product, product_id=product_id)
-#     categories = categorys.objects.all()
-#     variants = product.variants.all()
-#     total_quantity = sum(variant.stock for variant in variants)
-
-#     if request.method == "POST":
-#         # Validate product details
-#         product_name = request.POST.get("product_name")
-#         if not product_name:
-#             messages.error(request, "Product name is required.")
-#             return render(request, "admin_editproduct.html", {
-#                 "product": product, "categories": categories, 
-#                 "total_quantity": total_quantity, "variants": variants,
-#             })
-
-#         description = request.POST.get("description")
-#         if not description:
-#             messages.error(request, "Product description is required.")
-#             return render(request, "admin_editproduct.html", {
-#                 "product": product, "categories": categories, 
-#                 "total_quantity": total_quantity, "variants": variants,
-#             })
-
-#         try:
-#             discount = float(request.POST.get("discount") or 0)
-#             if discount < 0 or discount > 100:
-#                 raise ValueError
-#         except ValueError:
-#             messages.error(request, "Discount must be a percentage between 0 and 100.")
-#             return render(request, "admin_editproduct.html", {
-#                 "product": product, "categories": categories, 
-#                 "total_quantity": total_quantity, "variants": variants,
-#             })
-
-#         brand = request.POST.get("brand")
-#         if not brand:
-#             messages.error(request, "Brand is required.")
-#             return render(request, "admin_editproduct.html", {
-#                 "product": product, "categories": categories, 
-#                 "total_quantity": total_quantity, "variants": variants,
-#             })
-
-#         try:
-#             price = float(request.POST.get("actual_price"))
-#             if price <= 0:
-#                 raise ValueError
-#         except ValueError:
-#             messages.error(request, "Price must be a positive number.")
-#             return render(request, "admin_editproduct.html", {
-#                 "product": product, "categories": categories, 
-#                 "total_quantity": total_quantity, "variants": variants,
-#             })
-
-#         category_id = request.POST.get("category")
-#         if not category_id or not categorys.objects.filter(id=category_id).exists():
-#             messages.error(request, "Invalid category selected.")
-#             return render(request, "admin_editproduct.html", {
-#                 "product": product, "categories": categories, 
-#                 "total_quantity": total_quantity, "variants": variants,
-#             })
-
-#         # Update product details
-#         product.product_name = product_name
-#         product.description = description
-#         product.discount = discount
-#         product.brand = brand
-#         product.price = price
-#         product.category = categorys.objects.get(id=category_id)
-#         product.save()
-
-#         # Validate and process cropped images
-#         cropped_images = request.POST.getlist("cropped_images[]")
-#         cropped_image_ids = request.POST.getlist("cropped_image_ids[]")
-#         if len(cropped_images) != len(cropped_image_ids):
-#             messages.error(request, "Mismatch in image and ID count.")
-#             return render(request, "admin_editproduct.html", {
-#                 "product": product, "categories": categories, 
-#                 "total_quantity": total_quantity, "variants": variants,
-#             })
-
-#         for cropped_image_data, image_id in zip(cropped_images, cropped_image_ids):
-#             try:
-#                 # Decode and upload image
-#                 format, imgstr = cropped_image_data.split(";base64,")
-#                 decoded_image = BytesIO(base64.b64decode(imgstr))
-#                 upload_result = upload(decoded_image, folder="product_variants/")
-#                 image_url = upload_result.get("secure_url")
-#                 image = VariantImage.objects.get(id=image_id)
-#                 image.image = image_url
-#                 image.save()
-#             except Exception as ex:
-#                 messages.error(request, f"Error processing image for variant {image_id}: {ex}")
-
-#         # Handle variant validation and updates
-#         for variant in variants:
-#             size = request.POST.get(f"variant_{variant.id}_size")
-#             color = request.POST.get(f"variant_{variant.id}_color")
-#             try:
-#                 price = float(request.POST.get(f"variant_{variant.id}_price"))
-#                 stock = int(request.POST.get(f"variant_{variant.id}_stock"))
-#                 if stock < 0:
-#                     raise ValueError
-#             except ValueError:
-#                 messages.error(request, f"Invalid price or stock for variant ID {variant.id}.")
-#                 continue
-
-#             variant.size = size
-#             variant.color = color
-#             variant.price = price
-#             variant.stock = stock
-#             variant.save()
-
-#         # Add new variants with validation
-#         new_sizes = request.POST.getlist("new_variant_size[]")
-#         new_colors = request.POST.getlist("new_variant_color[]")
-#         new_stocks = request.POST.getlist("new_variant_stock[]")
-#         new_prices = request.POST.getlist("new_variant_price[]")
-#         for i in range(len(new_sizes)):
-#             try:
-#                 size = new_sizes[i]
-#                 color = new_colors[i]
-#                 stock = int(new_stocks[i])
-#                 price = float(new_prices[i])
-#                 if stock < 0 or price <= 0:
-#                     raise ValueError
-#             except ValueError:
-#                 messages.error(request, f"Invalid data for new variant {size} ({color}).")
-#                 continue
-
-#             new_variant = Variant.objects.create(
-#                 product=product, size=size, color=color, stock=stock, price=price
-#             )
-#             variant_image_files = request.FILES.getlist(f"new_variant_images_{i}[]")
-#             if not variant_image_files:
-#                 messages.error(request, f"No images uploaded for variant {size} ({color}).")
-#                 continue
-#             for image_file in variant_image_files:
-#                 VariantImage.objects.create(variant=new_variant, image=image_file)
-
-#     return render(request, "admin_editproduct.html", {
-#         "product": product,
-#         "categories": categories,
-#         "total_quantity": total_quantity,
-#         "variants": variants,
-#     })
-
-
-
 @login_required
 @admin_required
 @cache_control(no_cache=True, no_store=True, must_revalidate=True)
@@ -825,21 +672,6 @@ def admin_deleteproduct(request,id):
     product.is_delete = True  # Mark as deleted
     product.save()
     return redirect('admin_product')
-
-# @login_required
-# @admin_required
-# @cache_control(no_cache=True, no_store=True, must_revalidate=True)
-# def admin_order(requst):
-#     """Fetch and list all orders in the admin view."""
-#     orders_list = Order.objects.prefetch_related('order_items__variant__product', 'user', 'address').all().order_by('-order_date')
-#     # Pagination setup: 5 orders per page
-#     paginator = Paginator(orders_list, 5)  # Change 5 to the number of items per page you want
-#     page_number = requst.GET.get('page')  # Get the current page number from the request
-#     orders = paginator.get_page(page_number)
-
-#     context = {'orders': orders}
-#     return render(requst,'week2/admin_order.html', context)
-
 
 
 from django.shortcuts import render
@@ -1239,7 +1071,6 @@ def salesreport(request):
     }
     return render(request, 'week3/salesreport.html', context)
 
-import datetime
 
 from django.db.models import Sum, Count, F, Case, When, IntegerField
 from django.db.models.functions import TruncDay, TruncMonth, TruncYear
