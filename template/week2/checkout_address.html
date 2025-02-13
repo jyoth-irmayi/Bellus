@@ -16,7 +16,12 @@
             --secondary-color: #f0f7f4;
             --accent-color: #d4a373;
             --text-color: #333333;
-        }        
+        } 
+        
+body {
+    padding-top: 100px; /* Adjust this based on your navbar height */
+}
+    
 .product-image {
     border: 1px solid #ddd;
     padding: 10px;
@@ -42,8 +47,14 @@
     cursor: pointer;
     transition: transform 0.2s ease-in-out;
 }
-.navbar{
-    color: #2c614f;
+.navbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 1000;
+    background-color: white; /* Ensure it's visible over other elements */
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
 .navbar-brand {
     font-size: 2rem;
@@ -212,15 +223,6 @@ footer {
         <div class="row">
             <!-- Main Content (Address Management and Selection) -->
             <div class="col-md-8 p-4">
-                {% if messages %}
-                <div>
-                    {% for message in messages %}
-                    <div class="alert alert-danger{% if message.tags %} alert-{{ message.tags }}{% else %} alert-info{% endif %}">
-                        {{ message }}
-                    </div>
-                    {% endfor %}
-                </div>
-                {% endif %}
                 <div class="border rounded p-4">
                     <h4 class="mb-4">Manage Addresses</h4>
         

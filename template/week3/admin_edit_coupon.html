@@ -277,17 +277,27 @@
                 {% csrf_token %}
                 <div class="mb-3">
                     <label for="couponName" class="form-label">Coupon Name</label>
-                    <input type="text" class="form-control" id="couponName" name="couponName" value="{{ coupon.name }}" required>
+                    <input type="text" class="form-control" id="couponName" name="couponName"value="{{ old_data.couponName|default:coupon.name }}" required>
+                    {% if errors.couponName %}
+                        <small class="text-danger">{{ errors.couponName }}</small>
+                    {% endif %}
                 </div>
         
                 <div class="mb-3">
                     <label for="couponCondition" class="form-label">Condition</label>
-                    <textarea class="form-control" id="couponCondition" name="couponCondition" rows="2" required>{{ coupon.condition }}</textarea>
+                    <input type="text" class="form-control"  name="couponCondition" id="couponCondition" 
+                    value="{{ old_data.couponCondition|default:coupon.condition }}">
+                    {% if errors.couponCondition %}
+                        <small class="text-danger">{{ errors.couponCondition }}</small>
+                    {% endif %}
                 </div>
         
                 <div class="mb-3">
                     <label for="offerRate" class="form-label">Offer Rate</label>
-                    <input type="number" class="form-control" id="offerRate" name="offerRate" value="{{ coupon.offer_rate }}" required>
+                    <input type="number" class="form-control" id="offerRate" name="offerRate" value="{{ old_data.offerRate|default:coupon.offer_rate }}" required>
+                    {% if errors.offerRate %}
+                    <small class="text-danger">{{ errors.offerRate }}</small>
+                    {% endif %}
                 </div>
         
                 <div class="mb-3">
@@ -300,21 +310,31 @@
         
                 <div class="mb-3">
                     <label for="discountValue" class="form-label">Discount Value</label>
-                    <input type="number" class="form-control" id="discountValue" name="discountValue" value="{{ coupon.discount_value }}" required>
+                    <input type="number" class="form-control" id="discountValue" name="discountValue" value="{{ old_data.discountValue|default:coupon.discount_value }}" required>
+                    {% if errors.discountValue %}
+                        <small class="text-danger">{{ errors.discountValue }}</small>
+                    {% endif %}
+
                 </div>
         
                 <div class="mb-3">
                     <label for="couponValidity" class="form-label">Valid Until</label>
-                    <input type="date" class="form-control" id="couponValidity" name="couponValidity" value="{{ coupon.validity_date|date:'Y-m-d' }}" required>
+                    <input type="date" class="form-control" id="couponValidity" name="couponValidity" value="{{ old_data.couponValidity|default:coupon.validity_date }}" required>
+                    {% if errors.couponValidity %}
+                        <small class="text-danger">{{ errors.couponValidity }}</small>
+                    {% endif %}
                 </div>
         
                 <div class="mb-3">
                     <label for="maxUses" class="form-label">Maximum Uses</label>
-                    <input type="number" class="form-control" id="maxUses" name="maxUses" value="{{ coupon.max_uses }}" required>
+                    <input type="number" class="form-control" id="maxUses" name="maxUses" value="{{ old_data.maxUses|default:coupon.max_uses }}" required>
+                    {% if errors.maxUses %}
+                        <small class="text-danger">{{ errors.maxUses }}</small>
+                    {% endif %}
                 </div>
         
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <a href="{% url 'admin_coupon' %}"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button></a>
                     <button type="submit" class="btn btn-primary">Update Coupon</button>
                 </div>
             </form>        

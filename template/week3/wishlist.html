@@ -1,90 +1,87 @@
+<!-- child_template.html -->
+{% extends "week2/profilebase.html" %}
+
+{% block title %}My Custom Page Title{% endblock %}
+
+{% block content %}
 {% load static %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Product Detail</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+
+        <!-- Wishlist -->
+        <div class="col-md-9 col-lg-10 mt-3">
+            <div class="card mb-4">
+                <div>
+                <h1 class="mb-5 text-center pt-5">Wishlist</h1>
+                <hr>
+                </div>
+                <div class="card-body">
+                    <div style="padding-bottom:30px;">
+                        <h5 class="card-title mb-4">Your Wishlist Items</h5>
+                    </div>
+                    {% for entry in wishlist_items %}
+                    <div class="row mb-4 border-bottom pb-4 wishlist-item">
+                        <div class="col-md-2 col-4">
+                            <a href="{% url 'product_detail' entry.wishlist_item.variant.product.id %}">
+                                {% if entry.image %}
+                                    <img src="{{ entry.image.image.url }}" alt="{{ entry.wishlist_item.variant.product.product_name }}" class="img-fluid" style="max-width: 80px;">
+                                {% else %}
+                                    <img src="{% static 'images/default-product.jpg' %}" alt="Default Product Image" class="img-fluid" style="max-width: 80px;">
+                                {% endif %}
+                            </a>
+                        </div>
+                        <div class="col-md-6 col-8">
+                            <h6 class="mb-2">{{ entry.wishlist_item.variant.product.product_name }}</h6>
+                                 <p class="mb-2 text-muted">{{ entry.wishlist_item.variant.product.description }}</p>
+                                 <p class="mb-2"><small>Brand:</small> {{ entry.wishlist_item.variant.product.brand }}</p>
+                                 <p><strong>Size:</strong> {{ entry.wishlist_item.variansize.size }}</p>
+                                <p class="mb-0"><strong>Rs.₹{{ entry.wishlist_item.variant.actual_price }}</strong>
+                                <span class="text-muted text-decoration-line-through ms-2" style="font-size: 0.85em;">Rs. {{ entry.wishlist_item.variant.product.price }}</span>
+                                <span class="text-danger fw-bold ms-2">( {{ entry.wishlist_item.variant.product.discount }} Off)</span></p>
+                        </div>
+                        <div class="col-md-4 col-12 text-end">
+                            <a href="{% url 'add_to_cart_from_wishlist' entry.wishlist_item.variant.id entry.wishlist_item.variansize.id %}" class="btn btn-primary">
+                                Add to Cart
+                            </a>
+                        </div>
+                        
+                    </div>
+                    {% empty %}
+                    <p class="text-center">Your wishlist is empty.</p>
+                    {% endfor %}
+
+                    <!-- Pagination -->
+                    <div class="pagination-container text-center mt-4">
+                        <nav aria-label="Page navigation">
+                            <ul class="pagination justify-content-center">
+                                {% if wishlist_items.has_previous %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page=1">&laquo; First</a>
+                                    </li>
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page={{ wishlist_items.previous_page_number }}">Previous</a>
+                                    </li>
+                                {% endif %}
+
+                                <li class="page-item disabled">
+                                    <span class="page-link">Page {{ wishlist_items.number }} of {{ wishlist_items.paginator.num_pages }}</span>
+                                </li>
+
+                                {% if wishlist_items.has_next %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page={{ wishlist_items.next_page_number }}">Next</a>
+                                    </li>
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page={{ wishlist_items.paginator.num_pages }}">Last &raquo;</a>
+                                    </li>
+                                {% endif %}
+                            </ul>
+                        </nav>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
     <style>
-        :root {
-            --primary-color: #2c614f;
-            --secondary-color: #f0f7f4;
-            --accent-color: #d4a373;
-            --text-color: #333333;
-        }
-        
-        body {
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            background-color: #ecf0f1;
-            padding-top: 76px; /* Added to account for fixed navbar */
-        }
-
-        .navbar {
-            background-color: white;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            z-index: 1030;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-
-        .navbar-brand {
-            font-size: 2rem;
-            color: var(--primary-color) !important;
-            font-weight: bold;
-        }
-
-        .nav-link {
-            color: var(--primary-color) !important;
-            font-weight: 500;
-            transition: color 0.3s ease;
-        }
-
-        .nav-link:hover {
-            color: var(--accent-color) !important;
-        }
-
-        .sidebar {
-            background-color: #fff;
-            border-right: 1px solid #eee;
-            height: calc(100vh - 76px);
-            position: sticky;
-            top: 76px;
-            overflow-y: auto;
-        }
-
-        .profile-img {
-            width: 48px;
-            height: 48px;
-            background-color: var(--accent-color);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-        }
-
-        .sidebar .nav-link {
-            padding: 0.75rem 1rem;
-            color: var(--text-color) !important;
-            transition: all 0.3s ease;
-        }
-
-        .sidebar .nav-link:hover, .sidebar .nav-link.active {
-            background-color: var(--secondary-color);
-            color: var(--primary-color) !important;
-            transform: translateX(5px);
-        }
-
-        .sidebar .nav-link i {
-            margin-right: 10px;
-            color: var(--primary-color);
-        }
 
         .card {
             border: none;
@@ -128,212 +125,7 @@
             color: #d9534f;
         }
 
-        footer {
-            background-color: var(--primary-color);
-            color: white;
-            margin-top: auto;
-        }
-
-        footer a {
-            color: var(--secondary-color) !important;
-            transition: color 0.3s ease;
-        }
-
-        footer a:hover {
-            color: var(--accent-color) !important;
-        }
-
-        @media (max-width: 768px) {
-            .sidebar {
-                height: auto;
-                position: static;
-            }
-        }
     </style>
-</head>
-<body>
-    <nav class="navbar navbar-expand-lg navbar-light">
-        <div class="container">
-            <a class="navbar-brand" href="#">Bellus</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'homepage' %}">Home</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'shop' %}">Shop</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#">About</a>
-                    </li>
-                </ul>
-                <div class="d-flex">
-                    <a href="{% url 'cart_view' %}" class="btn btn-outline-primary me-2">
-                        <i class="fas fa-shopping-bag"></i>
-                    </a>
-                    <a href="{% url 'user_profile' %}" class="btn btn-outline-primary">
-                        <i class="fas fa-user"></i>
-                    </a>
-                </div>
-            </div>
-        </div>
-    </nav>
-    <div class="container">
-        <div class="row">
-            <!-- Sidebar -->
-            <div class="col-md-3 col-lg-2 sidebar mt-3 p-4">
-                <div class="d-flex align-items-center mb-4" style="border-bottom: 1px solid #ddd; height: 80px;">
-                    <div class="profile-img me-3 d-flex align-items-center justify-content-center">
-                        <i class="bi bi-person"></i>
-                    </div>
-                    <div>
-                        <small class="text-muted">Hello,</small><br>
-                        <small class="mb-0">{{ fullname }}</small>
-                    </div>
-                </div>
-    
-                <nav class="nav flex-column">
-                    <a class="nav-link d-flex align-items-center" href="{% url 'user_order_items' %}">
-                        <i class="bi bi-box me-2"></i>
-                        MY ORDERS
-                    </a>
-                    <a class="nav-link d-flex align-items-center" href="{% url 'wishlist' %}">
-                        <i class="fa fa-heart" aria-hidden="true"></i>
-                        MY Wishlist
-                    </a>
-                    <a class="nav-link active d-flex align-items-center" href="#">
-                        <i class="bi bi-person me-2"></i>
-                        ACCOUNT SETTINGS
-                    </a>
-                    <div class="ms-4">
-                        <a class="nav-link" href="{% url 'user_profile' %}">Profile Information</a>
-                        <a class="nav-link active" href="{% url 'user_address' %}">Manage Addresses</a>
-                    </div>
-                    <a class="nav-link d-flex align-items-center" href="#">
-                        <i class="bi bi-credit-card me-2"></i>
-                        PAYMENTS
-                    </a>
-                    <div class="ms-4">
-                        <a class="nav-link" href="{% url 'user_wallet' %}">Wallet</a>
-                    </div>
-                </nav>
-            </div>
-    
-            <!-- Wishlist -->
-            <div class="col-md-9 col-lg-10 mt-3">
-                <div class="card mb-4">
-                    <div>
-                    <h1 class="mb-5 text-center pt-5">Wishlist</h1>
-                    <hr>
-                    </div>
-                    <div class="card-body">
-                        <div style="padding-bottom:30px;">
-                            <h5 class="card-title mb-4">Your Wishlist Items</h5>
-                        </div>
-                        {% for entry in wishlist_items %}
-                        <div class="row mb-4 border-bottom pb-4 wishlist-item">
-                            <div class="col-md-2 col-4">
-                                <a href="{% url 'product_detail' entry.wishlist_item.variant.product.id %}">
-                                    {% if entry.image %}
-                                        <img src="{{ entry.image.image.url }}" alt="{{ entry.wishlist_item.variant.product.product_name }}" class="img-fluid" style="max-width: 80px;">
-                                    {% else %}
-                                        <img src="{% static 'images/default-product.jpg' %}" alt="Default Product Image" class="img-fluid" style="max-width: 80px;">
-                                    {% endif %}
-                                </a>
-                            </div>
-                            <div class="col-md-6 col-8">
-                                <h6 class="mb-2">{{ entry.wishlist_item.variant.product.product_name }}</h6>
-                                     <p class="mb-2 text-muted">{{ entry.wishlist_item.variant.product.description }}</p>
-                                     <p class="mb-2"><small>Brand:</small> {{ entry.wishlist_item.variant.product.brand }}</p>
-                                     <p><strong>Size:</strong> {{ entry.wishlist_item.variansize.size }}</p>
-                                    <p class="mb-0"><strong>Rs.₹{{ entry.wishlist_item.variant.actual_price }}</strong>
-                                    <span class="text-muted text-decoration-line-through ms-2" style="font-size: 0.85em;">Rs. {{ entry.wishlist_item.variant.product.price }}</span>
-                                    <span class="text-danger fw-bold ms-2">( {{ entry.wishlist_item.variant.product.discount }} Off)</span></p>
-                            </div>
-                            <div class="col-md-4 col-12 text-end">
-                                <a href="{% url 'add_to_cart_from_wishlist' entry.wishlist_item.variant.id entry.wishlist_item.variansize.id %}" class="btn btn-primary">
-                                    Add to Cart
-                                </a>
-                            </div>
-                            
-                        </div>
-                        {% empty %}
-                        <p class="text-center">Your wishlist is empty.</p>
-                        {% endfor %}
-
-                        <!-- Pagination -->
-                        <div class="pagination-container text-center mt-4">
-                            <nav aria-label="Page navigation">
-                                <ul class="pagination justify-content-center">
-                                    {% if wishlist_items.has_previous %}
-                                        <li class="page-item">
-                                            <a class="page-link" href="?page=1">&laquo; First</a>
-                                        </li>
-                                        <li class="page-item">
-                                            <a class="page-link" href="?page={{ wishlist_items.previous_page_number }}">Previous</a>
-                                        </li>
-                                    {% endif %}
-
-                                    <li class="page-item disabled">
-                                        <span class="page-link">Page {{ wishlist_items.number }} of {{ wishlist_items.paginator.num_pages }}</span>
-                                    </li>
-
-                                    {% if wishlist_items.has_next %}
-                                        <li class="page-item">
-                                            <a class="page-link" href="?page={{ wishlist_items.next_page_number }}">Next</a>
-                                        </li>
-                                        <li class="page-item">
-                                            <a class="page-link" href="?page={{ wishlist_items.paginator.num_pages }}">Last &raquo;</a>
-                                        </li>
-                                    {% endif %}
-                                </ul>
-                            </nav>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-
-    <footer class="footer py-4">
-        <div class="container-fluid">
-            <div class="row text-white">
-                <div class="col-md-4 mb-4">
-                    <h5>About Bellus</h5>
-                    <p>Bellus offers a curated selection of elegant and timeless women's fashion. Our pieces are designed to empower and inspire.</p>
-                </div>
-                <div class="col-md-4 mb-4">
-                    <h5>Quick Links</h5>
-                    <ul class="list-unstyled">
-                        <li><a href="#" class="text-white">Shop</a></li>
-                        <li><a href="#" class="text-white">Collections</a></li>
-                        <li><a href="#" class="text-white">About Us</a></li>
-                        <li><a href="#" class="text-white">Contact</a></li>
-                    </ul>
-                </div>
-                <div class="col-md-4 mb-4">
-                    <h5>Connect With Us</h5>
-                    <div class="d-flex">
-                        <a href="#" class="text-white me-3"><i class="fab fa-facebook-f"></i></a>
-                        <a href="#" class="text-white me-3"><i class="fab fa-instagram"></i></a>
-                        <a href="#" class="text-white me-3"><i class="fab fa-twitter"></i></a>
-                        <a href="#" class="text-white"><i class="fab fa-pinterest"></i></a>
-                    </div>
-                </div>
-            </div>
-            <hr class="my-4 bg-light">
-            <p class="text-center text-white mb-0">&copy; 2023 Bellus. All rights reserved.</p>
-        </div>
-    </footer>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.2/font/bootstrap-icons.min.css">
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <script>
     document.addEventListener('DOMContentLoaded', () => {
@@ -359,5 +151,4 @@
         {% endif %}
     });
 </script>
-    </body>
-    </html>
+{% endblock %}

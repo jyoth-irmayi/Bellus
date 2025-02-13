@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Order Requests</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <style>
+        body{
+            padding-top: 70px;
+        }
+        .navbar {
+            background-color: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,.1);
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1030;
+            color: #2c614f;
+        }
+        .nav-link {
+            color: #2c614f;
+            padding: 0.8rem 1rem;
+        }
+        .navbar-brand {
+            font-size: 2rem;
+            color:  #2c614f;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
+        <div class="container">
+            <a class="navbar-brand" href="#">Bellus</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">Shop</a>
+                    </li>
+                    <!-- <li class="nav-item">
+                        <a class="nav-link" href="#">Collections</a>
+                    </li> -->
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">About</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+<div class="container mt-5">
+    <h2 class="text-center mb-4">Admin Panel - Order Requests</h2>
+    {% if order_items %}
+    <table class="table table-bordered">
+        <thead class="table-dark">
+            <tr>
+                <th>Order ID</th>
+                <th>User</th>
+                <th>Product name</th>
+                <th>Quantity</th>
+                <th>Price</th>
+                <th>Status</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody id="orderRequestsTable">
+            <!-- Dummy Data (Replace with Dynamic Data) -->
+            {% for item in order_items %}
+            <tr>
+                <td>{{ item.order.id }}</td>
+                <td>{{ item.quantity }}</td>
+                <td>{{ item.variant.product.product_name }}</td>
+                <td>{{ item.quantity }}</td>
+                <td>{{ item.order.total_price }}</td>
+                <td>
+                    {% if item.status == 'pending_cancel' %}
+                        <span class="badge bg-warning">Cancel Request</span>
+                    {% elif item.status == 'pending_return' %}
+                        <span class="badge bg-info">Return Request</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <button class="btn btn-success btn-sm" onclick="showConfirmModal('{{ item.id }}', 'approve')">
+                        ✅ Approve
+                    </button>
+                    <button class="btn btn-danger btn-sm" onclick="showConfirmModal('{{ item.id }}', 'reject')">
+                        ❌ Reject
+                    </button>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+        <div class="alert alert-info">No pending requests.</div>
+    {% endif %}
+    <a href="{% url 'admin_dashboard' %}"><button>Back</button></a>
+</div>
+
+
+<!-- Confirmation Modal -->
+<div class="modal fade" id="confirmModal" tabindex="-1" aria-labelledby="confirmModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="confirmModalLabel">Confirm Action</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                Are you sure you want to <span id="confirmActionText"></span> this request?
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <a id="confirmActionBtn" class="btn btn-primary">Yes, Proceed</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- JavaScript -->
+<script>
+    function showConfirmModal(orderId, action) {
+        // Update modal text dynamically
+        document.getElementById("confirmActionText").textContent = action === "approve" ? "approve" : "reject";
+
+        // Set the action URL dynamically
+        let actionUrl = `/approve-request/${orderId}/${action}/`;
+        document.getElementById("confirmActionBtn").setAttribute("href", actionUrl);
+
+        // Show the modal
+        let confirmModal = new bootstrap.Modal(document.getElementById("confirmModal"));
+        confirmModal.show();
+    }
+</script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        {% if messages %}
+        const messages = [
+            {% for message in messages %}
+            {
+                level: "{{ message.tags }}",
+                text: "{{ message }}"
+            },
+            {% endfor %}
+        ];
+        messages.forEach(message => {
+            Swal.fire({
+                toast: true,
+                position: 'top-right',
+                icon: message.level === 'success' ? 'success' : 'error',
+                title: message.text,
+                showConfirmButton: false,
+                timer: 3000
+            });
+        });
+        {% endif %}
+    });
+</script>
+
+</body>
+</html>

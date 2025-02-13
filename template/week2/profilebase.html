@@ -1,0 +1,313 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Product Detail</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #2c614f;
+            --secondary-color: #f0f7f4;
+            --accent-color: #d4a373;
+            --text-color: #333333;
+            --light-gray: #f8f9fa;
+        }
+        body {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background-color: var(--light-gray);
+            padding-top: 76px; /* Adjust for fixed navbar */
+        }
+        .navbar {
+            background-color: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,.1);
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1030;
+        }
+        .navbar-brand {
+            font-size: 2rem;
+            color: var(--primary-color) !important;
+            font-weight: bold;
+            transition: color 0.3s ease;
+        }
+        .navbar-brand:hover {
+            color: var(--accent-color) !important;
+        }
+        .nav-link {
+            color: var(--primary-color);
+            font-weight: 500;
+            transition: color 0.3s ease;
+        }
+        .nav-link:hover {
+            color: var(--accent-color);
+        }
+        .btn-outline-primary {
+            color: var(--primary-color);
+            border-color: var(--primary-color);
+            transition: all 0.3s ease;
+        }
+        .btn-outline-primary:hover {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        .sidebar {
+            background-color: white;
+            border-right: 1px solid #eee;
+            height: calc(100vh - 76px);
+            position: sticky;
+            top: 76px;
+            overflow-y: auto;
+        }
+        .profile-img {
+            width: 48px;
+            height: 48px;
+            background-color: var(--accent-color);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.5rem;
+        }
+        .sidebar .nav-link {
+            color: var(--text-color);
+            transition: all 0.3s ease;
+            border-radius: 5px;
+            margin-bottom: 5px;
+        }
+        .sidebar .nav-link:hover, .sidebar .nav-link.active {
+            background-color: var(--secondary-color);
+            color: var(--primary-color);
+        }
+        .card {
+            border: none;
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+            border-radius: 0.5rem;
+            transition: transform 0.3s ease;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+        }
+        .card-title {
+            color: var(--primary-color);
+            font-weight: bold;
+        }
+        .footer {
+            background-color: var(--primary-color);
+            color: white;
+            margin-top: auto;
+        }
+        .footer a {
+            color: var(--secondary-color);
+            transition: color 0.3s ease;
+        }
+        .footer a:hover {
+            color: var(--accent-color);
+            text-decoration: none;
+        }
+        .btn-sm {
+            border-radius: 20px;
+            padding: 0.25rem 1rem;
+        }
+        .badge {
+            padding: 0.5em 1em;
+            border-radius: 20px;
+        }
+        @media (max-width: 768px) {
+            .sidebar {
+                position: static;
+                height: auto;
+                border-right: none;
+                border-bottom: 1px solid #eee;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-light">
+        <div class="container">
+            <a class="navbar-brand" href="#">Bellus</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'homepage' %}">Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'shop' %}">Shop</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">About</a>
+                    </li>
+                </ul>
+                <div class="d-flex">
+                    <a href="{% url 'cart_view' %}" class="btn btn-outline-primary me-2">
+                        <i class="fas fa-shopping-bag"></i>
+                    </a>
+                    <a href="{% url 'user_profile' %}" class="btn btn-outline-primary">
+                        <i class="fas fa-user"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-3 col-lg-2 sidebar py-4">
+                <div class="d-flex align-items-center mb-4 pb-3 border-bottom">
+                    <div class="profile-img me-3">
+                        <i class="bi bi-person"></i>
+                    </div>
+                    <div>
+                        <small class="text-muted">Hello,</small><br>
+                        <small class="mb-0">{{ fullname }}</small>
+                    </div>
+                </div>
+                <nav class="nav flex-column">
+                    <a class="nav-link active d-flex align-items-center" href="{% url 'user_profile' %}">
+                        <i class="bi bi-person me-2"></i>
+                        Profile Information
+                    </a>
+                    <a class="nav-link d-flex align-items-center" href="{% url 'user_order_items' %}">
+                        <i class="bi bi-box me-2"></i>
+                        MY ORDERS
+                    </a>
+                    <a class="nav-link d-flex align-items-center" href="{% url 'wishlist' %}">
+                        <i class="bi bi-heart me-2"></i>
+
+                        MY Wishlist
+                    </a>
+                
+                    <a class="nav-link d-flex align-items-center" href="{% url 'user_address' %}">
+                        <i class="bi bi-person me-2"></i>
+                        Manage Address
+                    </a>
+                    <a class="nav-link d-flex align-items-center" href="{% url 'user_wallet' %}">
+                        <i class="bi bi-wallet2 me-2"></i>
+
+                        Wallet
+                    </a>
+                </nav>
+            </div>
+            
+            {% block content %}
+            <!-- Default content can go here -->
+            {% endblock %}
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer py-4 mt-auto">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-4 mb-4">
+                    <h5>About Bellus</h5>
+                    <p>Bellus offers a curated selection of elegant and timeless women's fashion. Our pieces are designed to empower and inspire.</p>
+                </div>
+                <div class="col-md-4 mb-4">
+                    <h5>Quick Links</h5>
+                    <ul class="list-unstyled">
+                        <li><a href="#">Shop</a></li>
+                        <li><a href="#">Collections</a></li>
+                        <li><a href="#">About Us</a></li>
+                        <li><a href="#">Contact</a></li>
+                    </ul>
+                </div>
+                <div class="col-md-4 mb-4">
+                    <h5>Connect With Us</h5>
+                    <div class="d-flex">
+                        <a href="#" class="me-3"><i class="fab fa-facebook-f"></i></a>
+                        <a href="#" class="me-3"><i class="fab fa-instagram"></i></a>
+                        <a href="#" class="me-3"><i class="fab fa-twitter"></i></a>
+                        <a href="#" class="me-3"><i class="fab fa-pinterest"></i></a>
+                    </div>
+                </div>
+            </div>
+            <hr class="my-4 bg-light">
+            <p class="text-center mb-0">&copy; 2023 Bellus. All rights reserved.</p>
+        </div>
+    </footer>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.2/font/bootstrap-icons.min.css">
+    
+<!-- SweetAlert for Messages -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        {% if messages %}
+        const messages = [
+            {% for message in messages %}
+            {
+                level: "{{ message.tags }}",
+                text: "{{ message }}"
+            },
+            {% endfor %}
+        ];
+        messages.forEach(message => {
+            Swal.fire({
+                toast: true,
+                position: 'top-right',
+                icon: message.level === 'success' ? 'success' : 'error',
+                title: message.text,
+                showConfirmButton: false,
+                timer: 3000
+            });
+        });
+        {% endif %}
+    });
+</script>
+<!-- SweetAlert for Confirmation -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+    // Confirm Cancel function
+    function confirmCancel(itemId) {
+        Swal.fire({
+            title: 'Are you sure?',
+            text: "You won't be able to revert this!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, cancel it!',
+            cancelButtonText: 'No, keep it'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // If confirmed, submit the cancel form
+                const form = document.getElementById('cancel-form-' + itemId);
+                form.submit();
+            }
+        });
+    }
+
+    // Confirm Return function
+    function confirmReturn(itemId) {
+        Swal.fire({
+            title: 'Are you sure?',
+            text: "You are about to return this item. Are you sure?",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, return it!',
+            cancelButtonText: 'No, keep it'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // If confirmed, submit the return form
+                const form = document.getElementById('return-form-' + itemId);
+                form.submit();
+            }
+        });
+    }
+</script>
+    </body>
+    </html>

@@ -96,6 +96,66 @@
         .wishlist-btn:hover {
             color: var(--accent-color);
         }
+        /* Wrapper for the zoom effect */
+.zoom-wrapper {
+    position: relative;
+    display: flex;
+    justify-content: center;
+}
+
+/* Main image container - Full width */
+.image-container {
+    position: relative;
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+}
+
+#main-image {
+    width: 100%;
+    height: auto;
+    object-fit: cover;
+    transition: opacity 0.3s ease-in-out;
+}
+
+/* Small Zoom Lens */
+#zoom-lens {
+    position: absolute;
+    width: 80px;
+    height: 80px;
+    border: 2px solid black;
+    background: rgba(255, 255, 255, 0.3);
+    display: none;
+    pointer-events: none;
+}
+
+/* Floating Zoom Box - Shows on the side */
+#zoom-box {
+    width: 200px; /* Square zoom box */
+    height: 200px;
+    overflow: hidden;
+    border: 2px solid #ddd;
+    position: absolute;
+    top: 10%;
+    left: 70%; /* Positions it to the side */
+    background: rgba(255, 255, 255, 0.9);
+    display: none;
+    z-index: 10;
+}
+
+/* Ensure the zoomed image scales properly */
+#zoomed-image {
+    position: absolute;
+    width: 600px; /* Adjust to match zoom factor */
+    height: auto;
+    transform-origin: top left;
+}
+
+
         .popup {
             position: fixed;
             top: 20px; /* This ensures it appears at the top */
@@ -197,6 +257,10 @@
             }
         }
     </style>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <meta name="csrf-token" content="{{ csrf_token }}">
+
 </head>
 <body>
     <nav class="navbar navbar-expand-lg navbar-light">
@@ -249,7 +313,17 @@
                 <div class="product-container">
                     <div class="product-image-container">
                         {% if images %}
-                            <img id="main-image" src="{{ images.0.image.url }}" alt="{{ product.product_name }}" class="img-fluid">
+                        <div class="zoom-wrapper">
+                            <div class="image-container">
+                                <img id="main-image" src="{{ images.0.image.url }}" alt="{{ product.product_name }}" class="img-fluid">
+                                <div id="zoom-lens"></div> <!-- Zoom Lens -->
+                            </div>
+                            <!-- Zoomed Image Preview -->
+                            <div id="zoom-box">
+                                <img id="zoomed-image" src="{{ images.0.image.url }}" alt="Zoomed View">
+                            </div>
+
+                        </div>
                         {% endif %}
                         <div class="wishlist-btn-container">
                             {% if selected_variant and selected_variant.id %}
@@ -303,8 +377,10 @@
                         <form id="add-to-cart-form" method="POST" action="{% url 'add_to_cart' product.id %}">
                             {% csrf_token %}
                             <input type="hidden" name="variant_id" id="variant_id" value="{{ selected_variant.id }}">
-                            <input type="hidden" id="size_id" name="size_id">
-                            <button type="submit" id="add-to-cart-btn" class="btn add-to-cart-btn btn-lg">Add to Cart</button>
+                            <input type="hidden" name="size_id" id="size_id" value="">
+                            <button type="submit" id="add-to-cart-btn" class="btn add-to-cart-btn btn-lg">
+                                Add to Cart
+                            </button>
                         </form>
                     {% else %}
                         <p class="text-danger fw-bold">All sizes for this product are currently out of stock.</p>
@@ -616,7 +692,7 @@
 
 
 <!-- Zoom Effect Script -->
-<!-- <script>
+<script>
     document.addEventListener('DOMContentLoaded', () => {
         const container = document.querySelector('.product-image-container');
         const mainImage = document.getElementById('main-image');
@@ -667,7 +743,70 @@
             zoomedImage.style.top = `${zoomY}px`;
         });
     });
-</script> -->
+</script> 
+ <!-- AJAX Script for "Add to Cart" Form -->
+ <script>
+    $(document).ready(function(){
+      $('#add-to-cart-form').on('submit', function(e) {
+        e.preventDefault(); // Prevent page refresh
+
+        // Check if a size is selected before sending the AJAX request
+        var sizeId = $('#size_id').val();
+        if (!sizeId) {
+          Swal.fire({
+            toast: true,
+            position: 'top-right',
+            icon: 'error',
+            title: 'Please select a size first.',
+            showConfirmButton: false,
+            timer: 3000
+          });
+          return;
+        }
+
+        var form = $(this);
+        $.ajax({
+          type: 'POST',
+          url: form.attr('action'),
+          data: form.serialize(),  // Serialize the form data
+          dataType: 'json',
+          success: function(response) {
+            if (response.success) {
+              Swal.fire({
+                toast: true,
+                position: 'top-right',
+                icon: 'success',
+                title: response.message,
+                showConfirmButton: false,
+                timer: 3000
+              });
+              // Optionally update cart count or other UI elements here
+            } else {
+              Swal.fire({
+                toast: true,
+                position: 'top-right',
+                icon: 'error',
+                title: response.error,
+                showConfirmButton: false,
+                timer: 3000
+              });
+            }
+          },
+          error: function(xhr, status, error) {
+            Swal.fire({
+              toast: true,
+              position: 'top-right',
+              icon: 'error',
+              title: "Error adding product to cart. Please try again.",
+              showConfirmButton: false,
+              timer: 3000
+            });
+            console.error("AJAX Error:", error);
+          }
+        });
+      });
+    });
+  </script>
 
 <!-- SweetAlert for Messages -->
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>

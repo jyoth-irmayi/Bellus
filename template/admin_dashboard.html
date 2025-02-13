@@ -26,6 +26,7 @@
             line-height: 1.6;
             color: #333;
             background-color: white;
+            padding-top: 80px;
         }
 
         .container {
@@ -67,6 +68,15 @@
             margin-left: 1rem;
             cursor: pointer;
             border-radius: 4px;
+        }
+        .navbar {
+            background-color: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,.1);
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1030;
         }
         .nav-link {
             color: #2c614f;
@@ -319,6 +329,7 @@
                     <a class="nav-link" href="{% url 'admin_category' %}"><i class="fas fa-tags me-2"></i> Category</a>
                     <a class="nav-link" href="{% url 'admin_coupon' %}"><i class="fas fa-box me-2"></i> Coupon</a>
                     <a class="nav-link" href="{% url 'salesreport' %}"><i class="fas fa-chart-bar me-2"></i> Sales Report</a>
+                    <a class="nav-link" href="{% url 'request_confirmation' %}"><i class="fas fa-users me-2"></i> Requests from user</a>
                 </nav>
             </div>
 

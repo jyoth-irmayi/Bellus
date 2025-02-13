@@ -18,6 +18,16 @@
             font-family: 'Playfair Display', serif;
             color: var(--text-color);
             background-color: var(--secondary-color);
+            padding-top: 70px;
+        }
+        .navbar {
+            background-color: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,.1);
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1030;
         }
         .navbar-brand {
             font-size: 2rem;
@@ -146,19 +156,19 @@
                     {% endif %}
                 <div class="mb-3">
                     <label for="email" class="form-label">First Name</label>
-                    <input type="text" class="form-control" id="fname" name="firstname" placeholder="Enter your first name">
+                    <input type="text" class="form-control" id="fname" name="firstname" value="{{ firstname|default:'' }}" placeholder="Enter your first name">
                 </div>
                 <div class="mb-3">
                     <label for="email" class="form-label">Last Name</label>
-                    <input type="text" class="form-control" id="lname" name="lastname" placeholder="Enter your last name">
+                    <input type="text" class="form-control" id="lname" name="lastname" value="{{ lastname|default:'' }}" placeholder="Enter your last name">
                 </div>
                 <div class="mb-3">
                     <label for="email" class="form-label">Phone</label>
-                    <input type="text" class="form-control" id="phone" name="phone" placeholder="Enter your phone number">
+                    <input type="text" class="form-control" id="phone" name="phone" value="{{ phone|default:'' }}" placeholder="Enter your phone number">
                 </div>
                 <div class="mb-3">
                     <label for="email" class="form-label">Email address</label>
-                    <input type="text" class="form-control" id="email" name="email" placeholder="Enter your email">
+                    <input type="text" class="form-control" id="email" name="email" value="{{ email|default:'' }}" placeholder="Enter your email">
                 </div>
                 <div class="mb-3 password-container">
                     <label for="password" class="form-label">Password</label>

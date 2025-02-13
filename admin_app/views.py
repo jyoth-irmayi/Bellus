@@ -134,18 +134,18 @@ def customer_search(request):
     if search_query:
         users = UserDetails.objects.filter(
             Q(firstname__icontains=search_query) | Q(lastname__icontains=search_query)
-        )
+        ).order_by('user_id')
     else:
-        users = UserDetails.objects.all()  
+        users = UserDetails.objects.all().order_by('user_id') 
 
     # Implement pagination
-    paginator = Paginator(users, 5)  # Show 10 users per page
-    page_number = request.GET.get('page')  # Get the current page number from the request
+    paginator = Paginator(users, 5)  
+    page_number = request.GET.get('page')  
 
     try:
-        page_obj = paginator.page(page_number)  # Get the page object for the current page
+        page_obj = paginator.page(page_number)
     except PageNotAnInteger:
-        page_obj = paginator.page(1)  # Default to the first page if the page number is invalid
+        page_obj = paginator.page(1)  
     except EmptyPage:
         page_obj = paginator.page(paginator.num_pages)
 
@@ -256,12 +256,12 @@ import cloudinary.uploader  # Ensure Cloudinary is properly configured
 @login_required
 @admin_required
 @cache_control(no_cache=True, no_store=True, must_revalidate=True)
-
-
 def admin_add_product(request):
     if request.method == "POST":
         errors = []
-        # Process product-level data (unchanged)
+        form_data = request.POST.dict()  # Store entered values
+
+        # Process product-level data
         product_name = request.POST.get("product_name", "").strip()
         price = request.POST.get("price", "").strip()
         category_id = request.POST.get("category", "").strip()
@@ -282,8 +282,6 @@ def admin_add_product(request):
 
         if not description:
             errors.append("Description is required.")
-        elif not re.match(r"^[A-Za-z\s]+$", description):
-            errors.append("Description should contain only letters.")
 
         if not price:
             errors.append("Price is required.")
@@ -303,8 +301,8 @@ def admin_add_product(request):
         if errors:
             for error in errors:
                 messages.error(request, error)
-            return redirect("admin_add_product")
-
+            categories = categorys.objects.filter(is_delete=False)
+            return render(request, "admin_addproduct.html", {"categories": categories, "form_data": form_data})
 
         # --- Create Product ---
         try:
@@ -320,7 +318,8 @@ def admin_add_product(request):
             product.save()
         except ValidationError as e:
             messages.error(request, f"Validation error: {e.messages}")
-            return redirect("admin_add_product")
+            categories = categorys.objects.filter(is_delete=False)
+            return render(request, "admin_addproduct.html", {"categories": categories, "form_data": form_data})
 
         # --- Process Variants ---
         variants_data = {}
@@ -339,19 +338,12 @@ def admin_add_product(request):
                     else:
                         variants_data[variant_id][field_name] = request.POST[key]
 
-        # Debug collected data
-        print("Debug: Collected variants data -", variants_data)
-
-        # Process each variant
         for variant_id, fields in variants_data.items():
             variant_errors = []
-            print(f"Debug: Processing variant {variant_id} - {fields}")
-            color = fields.get("color","").strip()
-            variant_price = fields.get("price",'').strip()
+            color = fields.get("color", "").strip()
+            variant_price = fields.get("price", "").strip()
             sizes = fields.get("sizes][", [])
             stocks = fields.get("stocks", {})
-            print(size)
-            print(stocks)
 
             if not color:
                 variant_errors.append(f"Color for variant {variant_id} is required.")
@@ -369,15 +361,15 @@ def admin_add_product(request):
             if variant_errors:
                 for error in variant_errors:
                     messages.error(request, error)
-                return redirect("admin_add_product")
-
+                categories = categorys.objects.filter(is_delete=False)
+                return render(request, "admin_addproduct.html", {"categories": categories, "form_data": form_data})
 
             # Create variant
             variant = Variant(product=product, color=color, actual_price=float(variant_price))
             variant.save()
 
             # Create sizes and stocks
-            for size ,stock  in stocks.items():
+            for size, stock in stocks.items():
                 variant_size = VariantSize(variant=variant, size=size, quantity=stock)
                 variant_size.save()
 
@@ -386,7 +378,6 @@ def admin_add_product(request):
             for image in images:
                 cloudinary_response = cloudinary.uploader.upload(image)
                 VariantImage.objects.create(variant=variant, image=cloudinary_response['secure_url'])
-
 
         messages.success(request, "Product and variants added successfully.")
         return redirect("admin_product")
@@ -402,7 +393,7 @@ def admin_add_product(request):
 @cache_control(no_cache=True, no_store=True, must_revalidate=True)
 def admin_product(request):
    
-     products = Product.objects.filter(is_delete=False).order_by('-created_at')
+     products = Product.objects.filter(is_delete = False).order_by('-created_at')
 
     # Prepare a list of products with their first variant and image
      products_with_details = []
@@ -431,6 +422,7 @@ def admin_product(request):
         page_obj = paginator.page(paginator.num_pages)
 
      return render(request, 'admin_product.html', {"page_obj": page_obj})
+
 
 def product_search(request):
     search_query = request.GET.get('search', '')
@@ -488,13 +480,88 @@ def admin_editproduct(request, product_id):
     total_quantity = VariantSize.objects.filter(variant__product=product).aggregate(total_stock=Sum('quantity'))['total_stock'] or 0
 
     if request.method == "POST":
-        # Update product details
-        product.product_name = request.POST.get("product_name")
-        product.description = request.POST.get("description")
-        product.discount = request.POST.get("discount")
-        product.brand = request.POST.get("brand")
-        product.price = request.POST.get("actual_price")
-        category_id = request.POST.get("category")
+        errors = []
+
+        # --- Validate Product Fields ---
+        product_name = request.POST.get("product_name", "").strip()
+        description = request.POST.get("description", "").strip()
+        discount = request.POST.get("discount", "0").strip()
+        brand = request.POST.get("brand", "").strip()
+        price = request.POST.get("actual_price", "").strip()
+        category_id = request.POST.get("category", "").strip()
+
+        if not product_name:
+            errors.append("Product name is required.")
+        elif not re.match(r"^[A-Za-z\s]+$", product_name):
+            errors.append("Product name should contain only letters.")
+
+        if not brand:
+            errors.append("Brand is required.")
+        elif not re.match(r"^[A-Za-z\s]+$", brand):
+            errors.append("Brand should contain only letters.")
+
+        if not description:
+            errors.append("Description is required.")
+        elif not re.match(r"^[A-Za-z\s]+$", description):
+            errors.append("Description should contain only letters.")
+
+        if not price:
+            errors.append("Price is required.")
+        elif not re.match(r'^\d+(\.\d+)?$',price):  # Checks if it's a valid float or integer
+            price.append(f"Price for variant {variant.id} must be a valid number.")
+        elif float(price) <= 0:
+            price.append(f"Price for variant {variant.id} must be greater than zero.")
+
+        if not re.match(r'^\d+(\.\d+)?$', discount):  # Checks if it's a valid float or integer
+            variant_errors.append(f"discount must be a valid number.")
+
+        if discount and price and discount.isdigit() and price.isdigit():
+            if float(discount) >= float(price):
+                errors.append("Discount cannot be greater than or equal to the price.")
+
+        if not category_id:
+            errors.append("Category is required.")
+
+        # --- Validate Variants ---
+        for variant in variants:
+            variant_errors = []
+            color = request.POST.get(f"variant_{variant.id}_color", "").strip()
+            variant_price = request.POST.get(f"variant_{variant.id}_price", "").strip()
+            size_keys = [key for key in request.POST.keys() if key.startswith(f"variant_{variant.id}_size_")]
+
+            if not color:
+                variant_errors.append(f"Color for variant {variant.id} is required.")
+            elif not re.match(r"^[A-Za-z\s]+$", color):
+                variant_errors.append(f"Color for variant {variant.id} must contain only letters.")
+
+            if not variant_price:
+                variant_errors.append(f"Price for variant {variant.id} is required.")
+            elif not re.match(r'^\d+(\.\d+)?$', variant_price):  # Checks if it's a valid float or integer
+                variant_errors.append(f"Price for variant {variant.id} must be a valid number.")
+            elif float(variant_price) <= 0:
+                variant_errors.append(f"Price for variant {variant.id} must be greater than zero.")
+
+            if variant_errors:
+                errors.extend(variant_errors)
+
+        # --- Stop and Show Errors if Found ---
+        if errors:
+            for error in errors:
+                messages.error(request, error)
+            return render(request, "admin_editproduct.html", {
+                "product": product,
+                "categories": categories,
+                "total_quantity": total_quantity,
+                "variants": variants,
+                "variant_stock_data": variant_stock_data,
+            })
+
+        # --- Save Product Details ---
+        product.product_name = product_name
+        product.description = description
+        product.discount = discount
+        product.brand = brand
+        product.price = float(price)
         product.category = categorys.objects.get(id=category_id)
         product.save()
     
@@ -576,12 +643,15 @@ def admin_editproduct(request, product_id):
                     stock_value = int(stock_value)
 
                     # Check if the size already exists for this variant
-                    size_instance, created = VariantSize.objects.get_or_create(
-                        variant=variant,
-                        size=size_value
-                    )
+                    size_instances = VariantSize.objects.filter(variant=variant, size=size_value)
+
+                if size_instances.exists():
+                    size_instance = size_instances.first()  # Pick one if multiple exist
                     size_instance.quantity = stock_value
                     size_instance.save()
+                else:
+                    VariantSize.objects.create(variant=variant, size=size_value, quantity=stock_value)
+
 
             # Update existing variant images
             existing_image_ids = request.POST.getlist(f"variant_{variant.id}_existing_images")
@@ -690,14 +760,7 @@ def admin_order(request):
     # Annotate orders with priority for sorting
     orders_list = Order.objects.prefetch_related(
         'order_items__variant__product', 'user', 'address'
-    ).annotate(
-        priority=Case(
-            When(order_items__status="pending_cancel", then=1),
-            When(order_items__status="pending_return", then=2),
-            default=3,
-            output_field=IntegerField(),
-        )
-    ).order_by("priority", "-order_date").distinct()
+    ).order_by("-order_date")
 
     # Pagination setup: 5 orders per page
     paginator = Paginator(orders_list, 5)  # Change 5 to your preferred number of orders per page
@@ -780,98 +843,89 @@ from django.contrib.admin.views.decorators import staff_member_required
 from django.db import transaction
 from decimal import Decimal
 
+@admin_required
+@login_required
+def request_confirmation(request):
+    order_items = OrderItem.objects.filter(status__in=['pending_cancel', 'pending_return']).order_by('-id')
+    return render(request,'week3/request_confirmation.html',{'order_items': order_items})
+
 
 @login_required
 def approve_order_request(request, item_id, action):
-    print('hello orders')
     order_item = get_object_or_404(OrderItem, id=item_id)
-
-    print(f"🔍 Initial Status: {order_item.status}, Request Status: {order_item.request_status}")
-
-    if order_item.status in ['pending', 'shipped', 'delivered', 'pending_cancel', 'pending_return']:  
+    order = order_item.order  # Get the order
+    
+    print(f" Initial Status: {order_item.status}, Request Status: {order_item.request_status}")
+    
+    if order_item.status in ['pending_cancel', 'pending_return']:  
         try:
             with transaction.atomic():
                 old_status = order_item.status  
+                refund_amount = 0  # Initialize refund amount
 
                 if action == 'approve':
-                    
                     if order_item.status == 'pending_cancel':
+                        if order.payment_method in ['wallet', 'razorpay']:  
+                            refund_amount = order_item.price  # ✅ Directly take the stored price (no need to multiply by quantity)
+
                         order_item.status = 'canceled'
+
                     elif order_item.status == 'pending_return':
+                        refund_amount = order_item.price  # ✅ Corrected refund calculation
                         order_item.status = 'returned'
-                    else:
-                        messages.error(request, "⚠️ Invalid request type or status mismatch.")
-                        print("kflkjfjkds")
-                        return redirect('view_admin_order', order_item.order.id)
 
                     order_item.request_status = 'approved'
-                    print(f"✅ Updating Status to: {order_item.status}")
                     order_item.save()
-                    print(order_item.status)
+                    
+                    if refund_amount > 0 and order.payment_method in ['wallet', 'razorpay']:
+                        wallet = order.user.wallet
+                        if wallet:
+                            wallet.balance = F('balance') + refund_amount
+                            wallet.save(update_fields=['balance'])
+                            wallet.refresh_from_db()
 
-                    refund_amount = order_item.total_price + (order_item.total_price * Decimal('0.10'))
-                    wallet = order_item.order.user.wallet
-
-                    if wallet:
-                        wallet.balance = F('balance') + refund_amount
-                        wallet.save(update_fields=['balance'])
-                        wallet.refresh_from_db()
-
-                        Transaction.objects.create(
-                            wallet=wallet,
-                            amount=refund_amount,
-                            transaction_type='credit',
-                            description=f"Refund for {order_item.status} order item {order_item.id}"
-                        )
-                        print(f"✅ Wallet updated: New Balance {wallet.balance}")
-                    else:
-                        messages.error(request, "User wallet not found.")
-
+                            Transaction.objects.create(
+                                wallet=wallet,
+                                amount=refund_amount,
+                                transaction_type='credit',
+                                description=f"Refund for {order_item.status} order item {order_item.id}"
+                            )
+                        else:
+                            messages.error(request, "User wallet not found.")
+                    
+                    # Restore stock
                     variant_size = VariantSize.objects.filter(
                         variant=order_item.variant,
                         size=order_item.variant_size.size
                     ).first()
 
                     if variant_size:
-                        print(f"✅ Updating stock for VariantSize {variant_size.size}")
                         variant_size.quantity = F('quantity') + order_item.quantity
                         variant_size.save(update_fields=['quantity'])
                     else:
                         print("⚠️ Variant size not found! Check database.")
-
+                    
                     messages.success(request, f"Order {order_item.status} approved successfully.")
 
                 elif action == 'reject':
                     if order_item.status == 'pending_cancel':
                         order_item.status = 'cancel rejected' 
-                    if order_item.status == 'pending_return': 
+                    elif order_item.status == 'pending_return': 
                         order_item.status = 'return rejected'    
   
                     order_item.request_status = 'rejected'
                     order_item.save()
                     messages.error(request, "❌ Order request rejected.")
-
-                else:
-                    messages.error(request, "Order .")
-
-
-                print(f"DEBUG: Before saving -> Status: {order_item.status}")
-
+                
                 order_item.save(update_fields=['status', 'request_status'])
                 order_item.refresh_from_db()
-
-                latest_status = OrderItem.objects.get(id=item_id).status
-                if latest_status != order_item.status:
-                    print(f"⚠️ Status changed unexpectedly! Before Save: {order_item.status}, After Save: {latest_status}")
 
         except Exception as e:
             messages.error(request, f"An error occurred while processing the request: {str(e)}")
     else:
-        messages.error(request, "cannot update")
+        messages.error(request, "Cannot update order status.")
 
-    return redirect('view_admin_order',order_item.order.id)
-
-
+    return redirect('request_confirmation')
 
 @login_required
 def reject_order_request(request, item_id):
@@ -976,27 +1030,93 @@ def admin_coupon(request):
         coupon.save()
 
         # Return a JSON response indicating success
-        return JsonResponse({'status': 'success', 'message': 'Coupon added successfully!'})
+        messages.success(request, 'Coupon added successfully!')
+        return redirect('admin_coupon')
     
     # If the request method is not POST, return the form page
     context = {'coupons': Coupon.objects.all()}
     return render(request, 'week3/admin_coupon.html', context)
 
+
+
 @login_required
 @admin_required
 @cache_control(no_cache=True, no_store=True, must_revalidate=True)
-def admin_edit_coupon(request,id):
+def admin_edit_coupon(request, id):
     coupon = get_object_or_404(Coupon, id=id)
 
     if request.method == 'POST':
+        errors = {}
+
         # Get data from the form
-        coupon.name = request.POST.get('couponName')
-        coupon.condition = request.POST.get('couponCondition')
-        coupon.offer_rate = request.POST.get('offerRate')
-        coupon.discount_type = request.POST.get('discountType')
-        coupon.discount_value = request.POST.get('discountValue')
-        coupon.validity_date = request.POST.get('couponValidity')
-        coupon.max_uses = request.POST.get('maxUses')
+        coupon_name = request.POST.get('couponName')
+        coupon_condition = request.POST.get('couponCondition')
+        offer_rate = request.POST.get('offerRate')
+        discount_type = request.POST.get('discountType')
+        discount_value = request.POST.get('discountValue')
+        coupon_validity = request.POST.get('couponValidity')
+        max_uses = request.POST.get('maxUses')
+
+        # Validate coupon name
+        if not coupon_name or len(coupon_name.strip()) == 0:
+            errors['couponName'] = "Coupon name is required."
+
+        # Validate coupon condition
+        if not coupon_condition or len(coupon_condition.strip()) == 0:
+            errors['couponCondition'] = "Coupon condition is required."
+
+        # Validate offer rate
+        try:
+            offer_rate = float(offer_rate) if offer_rate else 0.0
+            if offer_rate < 0:
+                errors['offerRate'] = "Offer rate cannot be negative."
+        except (ValueError, TypeError):
+            errors['offerRate'] = "Invalid offer rate."
+
+        # Validate coupon validity
+        try:
+            validity_date = datetime.strptime(coupon_validity, "%Y-%m-%d").date()
+            if validity_date < datetime.today().date():
+                errors['couponValidity'] = "Validity date cannot be in the past."
+        except (ValueError, TypeError):
+            errors['couponValidity'] = "Invalid date format."
+
+        # Validate discount value
+        try:
+            discount_value = float(discount_value) if discount_value else 0.0
+            if discount_value < 0:
+                errors['discountValue'] = "Discount value cannot be negative."
+        except (ValueError, TypeError):
+            errors['discountValue'] = "Invalid discount value."
+
+        # Validate max uses
+        try:
+            max_uses = int(max_uses)
+            if max_uses <= 0:
+                errors['maxUses'] = "Maximum uses must be greater than 0."
+        except (ValueError, TypeError):
+            errors['maxUses'] = "Invalid maximum uses value."
+
+        # Ensure at least one of `discount_value` or `offer_rate` is non-zero
+        if discount_value == 0.0 and offer_rate == 0.0:
+            errors['discount'] = "Either discount value or offer rate must be greater than 0."
+
+        # If errors exist, render the form again with errors
+        if errors:
+            return render(request, 'week3/admin_edit_coupon.html', {
+                'coupon': coupon,
+                'errors': errors,
+                'old_data': request.POST  # Retain form data
+            })
+
+        # Update coupon object
+        coupon.name = coupon_name
+        coupon.condition = coupon_condition
+        coupon.offer_rate = offer_rate
+        coupon.discount_type = discount_type
+        coupon.discount_value = discount_value
+        coupon.validity_date = coupon_validity
+        coupon.max_uses = max_uses
 
         # Save the updated coupon
         coupon.save()
@@ -1004,8 +1124,8 @@ def admin_edit_coupon(request,id):
         # Show success message
         messages.success(request, "Coupon updated successfully.")
         return redirect('admin_coupon')
-    return render(request, 'week3/admin_edit_coupon.html',{'coupon': coupon})
 
+    return render(request, 'week3/admin_edit_coupon.html', {'coupon': coupon})
 
 
 @login_required
@@ -1087,6 +1207,25 @@ def sales_report_data(request):
     status = request.GET.getlist('status')  # Multiple statuses
     date_filter = request.GET.get('date_filter', 'day')
 
+    if start_date and end_date:
+        try:
+            start_date_obj = datetime.strptime(start_date, "%Y-%m-%d").date()
+            end_date_obj = datetime.strptime(end_date, "%Y-%m-%d").date()
+
+            # Validation: Start date should not be greater than the end date
+            if start_date_obj > end_date_obj:
+                messages.error(request, "Start date cannot be greater than the end date.")
+                return redirect("sales_report_data")  # Redirect to the report page
+
+            # Validation: Start date and end date should not be the same
+            if start_date_obj == end_date_obj:
+                messages.error(request, "Start date and end date cannot be the same.")
+                return redirect("sales_report_data")
+
+        except ValueError:
+            messages.error(request, "Invalid date format provided.")
+            return redirect("sales_report_data")
+
     # Initialize queryset for orders
     queryset = Order.objects.all()
 
@@ -1150,7 +1289,7 @@ def sales_report_data(request):
     total_orders = queryset.aggregate(Count('id'))['id__count'] or 0
     total_products_sold = queryset.aggregate(Sum('delivered_products'))['delivered_products__sum'] or 0
 
-    today = datetime.date.today().strftime('%Y-%m-%d')
+    today =date.today().strftime('%Y-%m-%d')
     # Prepare the context for rendering
     context = {
         'today': today,
@@ -1257,10 +1396,11 @@ import openpyxl
 from django.http import HttpResponse
 from django.shortcuts import render
 from .models import Order
-
 @admin_required
 @cache_control(no_cache=True, no_store=True, must_revalidate=True)
 def export_sales_report_excel(request):
+
+    print("excel")
     # Fetch the orders or sales data
     orders = Order.objects.all().select_related('user').prefetch_related('order_items__variant__product')
 
@@ -1276,6 +1416,8 @@ def export_sales_report_excel(request):
     # Populate the worksheet with sales data
     for order in orders:
         for item in order.order_items.all():
+            # Convert order.order_date to a naive datetime
+            naive_order_date = order.order_date.replace(tzinfo=None)
             row = [
                 order.id,
                 f"{order.user.firstname} {order.user.lastname}",
@@ -1284,7 +1426,7 @@ def export_sales_report_excel(request):
                 item.variant.product.price,
                 item.variant.product.discount,
                 item.quantity * item.variant.product.price * (1 - item.variant.product.discount / 100),
-                order.order_date,
+                naive_order_date,
                 item.get_status_display()
             ]
             ws.append(row)
@@ -1299,3 +1441,4 @@ def export_sales_report_excel(request):
     wb.save(response)
 
     return response
+    

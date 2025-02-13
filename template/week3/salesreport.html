@@ -67,6 +67,7 @@
             line-height: 1.6;
             color: #333;
             background-color: white;
+            padding-top: 100px;
         }
 
         .container {
@@ -79,8 +80,9 @@
         }
 
         header {
-            background-color:#2c614f ;
-            color: #fff;
+            background-color:white ;
+            color:black;
+            border: 1px solid black;
             padding: 1rem;
         }
 
@@ -108,6 +110,15 @@
             margin-left: 1rem;
             cursor: pointer;
             border-radius: 4px;
+        }
+        .navbar {
+            background-color: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,.1);
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1030;
         }
         .nav-link {
             color: #2c614f;
@@ -199,7 +210,7 @@
 
         .bar {
             flex: 1;
-            background-color: #2c614f;
+            /* background-color: #2c614f; */
             transition: height 0.3s ease;
         }
 
@@ -301,7 +312,7 @@
                     <a class="nav-link" href="{% url 'admin_category' %}"><i class="fas fa-tags me-2"></i> Category</a>
                     <a class="nav-link" href="#"><i class="fas fa-cog me-2"></i> Settings</a>
                     <a class="nav-link active" href="{% url 'salesreport' %}"><i class="fas fa-chart-bar me-2"></i> Sales Report</a>
-                    <a class="nav-link" href="#"><i class="fas fa-image me-2"></i> Banner Manage</a>
+                    <a class="nav-link" href="{% url 'request_confirmation' %}"><i class="fas fa-users me-2"></i> Requests from user</a>
                 </nav>
             </div>
             <div class="col-md-10 px-4">
@@ -423,7 +434,31 @@
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        {% if messages %}
+        const messages = [
+            {% for message in messages %}
+            {
+                level: "{{ message.tags }}",
+                text: "{{ message }}"
+            },
+            {% endfor %}
+        ];
+        messages.forEach(message => {
+            Swal.fire({
+                toast: true,
+                position: 'top-right',
+                icon: message.level === 'success' ? 'success' : 'error',
+                title: message.text,
+                showConfirmButton: false,
+                timer: 3000
+            });
+        });
+        {% endif %}
+    });
+</script>
 </body>
 </html>
 

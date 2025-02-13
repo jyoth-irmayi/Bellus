@@ -23,6 +23,7 @@ urlpatterns = [
     path('admin_order/', views.admin_order, name='admin_order'),
     path('view_admin_order/<int:order_id>/', views.view_admin_order, name='view_admin_order'),
     path('order/update_status/<int:order_id>/', views.update_order_status, name='update_order_status'),
+    path('request_confirmation/', views.request_confirmation, name='request_confirmation'),
     path('approve-request/<int:item_id>/<str:action>/', views.approve_order_request, name='approve_order_request'),
     path('order/reject/<int:item_id>/', views.reject_order_request, name='reject_order_request'),
     path('admin_coupon/', views.admin_coupon, name='admin_coupon'),
@@ -31,7 +32,7 @@ urlpatterns = [
     path('salesreport', views.salesreport, name='salesreport'),
     path('sales-report-data/', views.sales_report_data, name='sales_report_data'),
     path('export-sales-report/', views.export_sales_report, name='export_sales_report'),
-    path('export-sales-report/', views.export_sales_report_excel, name='export_sales_report_excel'),
+    path('export-sales-report-excel/', views.export_sales_report_excel, name='export_sales_report_excel'),
 
     
  ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
