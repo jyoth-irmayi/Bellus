@@ -399,9 +399,11 @@ def admin_product(request):
      products_with_details = []
      for product in products:
         first_variant = product.variants.first()
-        firstSize =first_variant.sizes.first()  # Fetch the first variant
+        firstSize = None  # Default to None
+        # firstSize =first_variant.sizes.first()  # Fetch the first variant
         first_image = None
         if first_variant:
+            firstSize =first_variant.sizes.first()  # Fetch the first variant
             first_image = first_variant.images.first()  # Fetch the first image of the variant
         
         products_with_details.append({
