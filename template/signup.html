@@ -1,4 +1,5 @@
 
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -19,6 +20,8 @@
             color: var(--text-color);
             background-color: var(--secondary-color);
             padding-top: 70px;
+            background-image: url("{% static 'images/cover-login.png' %}");
+            background-size: cover;
         }
         .navbar {
             background-color: white;
@@ -70,9 +73,10 @@
             max-width: 400px;
             margin: 2rem auto;
             padding: 2rem;
-            background-color: white;
+            /* background-color: white; */
             border-radius: 10px;
             box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+            border: 1px solid white;
         }
         .login-image {
             width: 100%;

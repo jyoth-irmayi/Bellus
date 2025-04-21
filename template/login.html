@@ -1,5 +1,6 @@
 
 {% load socialaccount %}
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -14,7 +15,7 @@
     <style>
         :root {
             --primary-color: #2c614f;
-            --secondary-color: #f0f7f4;
+            --secondary-color: white;
             --accent-color: #d4a373;
             --text-color: #333333;
         }
@@ -51,6 +52,8 @@
             font-family: 'Playfair Display', serif;
             color: var(--text-color);
             background-color: var(--secondary-color);
+            background-image: url("{% static 'images/cover-login.png' %}");
+            background-size: cover;
         }
         .navbar-brand {
             font-size: 2rem;
@@ -102,11 +105,14 @@
             text-decoration: line-through;
         }
         .login-container {
+            /* background-image: url("{% static 'images/cover-login2.png' %}");
+            background-size: cover; */
             max-width: 400px;
             margin: 2rem auto;
             padding: 2rem;
             border-radius: 10px;
             box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+            border: 1px solid white;
         }
         .login-image {
             width: 100%;

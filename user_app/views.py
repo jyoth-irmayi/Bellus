@@ -411,7 +411,7 @@ def reset_password(request):
     return render(request, 'reset_password.html')
 
 
-@login_required
+# @login_required
 @cache_control(no_cache=True, no_store=True, must_revalidate=True)
 def homepage(request):
     # Fetch the two most recently added products
