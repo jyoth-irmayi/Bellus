@@ -25,7 +25,7 @@
             color: white;
         }
         .navbar {
-            background-color: white;
+            background-color: rgb(128, 105, 105);
             box-shadow: 0 2px 4px rgba(0,0,0,.1);
             position: fixed;
             top: 0;
@@ -35,7 +35,7 @@
         }
         .navbar-brand {
             font-size: 2rem;
-            color: var(--primary-color) !important;
+            color: black;
         }
         /* Error message style */
         .error {
@@ -60,7 +60,7 @@
             box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
         }
         .nav-link {
-            color: var(--primary-color) !important;
+            color: black;
         }
         .btn-primary {
             background-color: var(--primary-color);
@@ -86,9 +86,14 @@
             border-radius: 10px;
             margin-bottom: 1rem;
         }
+        .form-control {
+            background-color: transparent; /* Make input background transparent */
+            border-color: var(--primary-color); /* Retain the border color */
+        }
+
         .form-control:focus {
-            border-color: var(--primary-color);
-            box-shadow: 0 0 0 0.2rem rgba(44, 97, 79, 0.25);
+            border-color: var(--primary-color); /* Keep focus border color */
+            box-shadow: 0 0 0 0.2rem rgba(44, 97, 79, 0.25); /* Retain focus effect */
         }
         .social-login {
             display: flex;
@@ -121,7 +126,7 @@
     </style>
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
+    <nav class="navbar navbar-expand-lg navbar-light shadow-sm">
         <div class="container">
             <a class="navbar-brand" href="#">Bellus</a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
